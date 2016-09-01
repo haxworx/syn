@@ -1,0 +1,31 @@
+# syn
+Bad Ass Sounds
+# that's right baby
+
+What's new ???
+  * mixing of sounds.
+  * instruments.
+  * audio recording (Wav).
+  * multiple recording.
+  * audio playback (Wav).
+  * instruments.
+  * refactoring code.
+  * more optimisations.
+  * pitch bending.
+  * music file playing.
+  * basic visualisation.
+  * directory restructure
+  * better makefile  
+  * portable code for Windows and Unix.
+  * graphics stuff.
+  * new vinyl instrument.
+  * new lazer blaster sound thing.
+  * create your own music in custom textfile music format.
+  * drag and drop sound files to play the music you create.
+  * added pitch bending during note playback w/safety!
+  * disabled "visualisations" because on some machines with rubbish
+    acceleration (X11) SDL2 suffers!
+  * added a fix to stop "clicking" sound during playback.
+  * introduced more verbose output in the terminal.
+  * added xbox360/gamepad/joystick support for controlling the
+    bass, mid and treble.
