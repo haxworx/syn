@@ -29,3 +29,4 @@ What's new ???
   * introduced more verbose output in the terminal.
   * added xbox360/gamepad/joystick support for controlling the
     bass, mid and treble.
+  * restructured source code.

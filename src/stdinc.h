@@ -13,6 +13,8 @@
 #include <sys/stat.h>
 #include <errno.h>
 
+#define VERSION "[v0.6.0.0]  "
+
 #ifndef PATH_MAX
 #define PATH_MAX 8192
 #endif
@@ -24,8 +26,6 @@
 #endif
 
 #define pi 3.14159265358979323846
-
-#define VERSION "[v0.5.2.0]  "
 
 void fail(char *fmt, ...);
 

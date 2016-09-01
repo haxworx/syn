@@ -84,11 +84,13 @@ char current_action_text[8192] = { 0 };
 
 void update_console(sound_t * sound)
 {
+#if defined(DEBUG)
     printf("VOLUME: %d INSTRUMENT %d\n", sound->volume, sound->effects);
     printf("BASS: %d MID: %d TREBLE: %d\n", global_bass, global_mid,
            global_treble);
     printf("PITCH: %dHz TONE: %d\n", global_pitch, sound->note);
     printf("DEBUG: %s\n\n", current_action_text);
+#endif
 }
 
 void set_files_list(char *buf, int len)
@@ -184,7 +186,8 @@ void update_screen(sound_t * sound)
     if (!logo_copy)
         fail("SDL_ConvertSurface: %s\n", SDL_GetError());
 
-#define FONT_SIZE 12
+#define FONT_SIZE 11
+ 
 #define FONT_PADDING 5
 
     SDL_Color whiteColor = { 255, 255, 255, 0 };
@@ -331,7 +334,7 @@ void visualization(void)
 {
     SDL_Rect final_size;
     int x, y;
-    int16_t w, *ptr;
+    int16_t *ptr;
 
     // no visualisation if we record!
     if (synth_continuous || recording_enabled) {
@@ -348,13 +351,11 @@ void visualization(void)
         SDL_memset(pixels, 0x00000000, WIDTH * HEIGHT * sizeof(*pixels));
 
         ptr = waveptr;
-        w = *ptr;
-
-        w /= WIDTH;
-        x = WIDTH / 2;
-
-        for (y = 0; y < HEIGHT; y++) {
-            pixels[(y * WIDTH) + w + x] = 0xff0000ff;
+	
+	for (x = 0; x < WIDTH; x++) {
+	    for (y = HEIGHT; y < HEIGHT; y ++) {
+                pixels[x + (y * WIDTH)] = 0xff00ffff;
+            }
         }
 
         SDL_RenderClear(renderer);
