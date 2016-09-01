@@ -49,6 +49,23 @@ bool synth_continuous;
 
 uint32_t start_time;
 
+/* this is a wav_h for RIFF/WAVE file */
+struct wav_file_hdr_t {
+    char chunk_id[4];
+    int chunk_size;
+    char format[4];
+    char subchunk1_id[4];
+    int subchunk1_size;
+    short int audio_format;
+    short int num_channels;
+    int sample_rate;
+    int byte_rate;
+    short int block_align;
+    short int bits_per_sample;
+    char subchunk2_id[4];
+    int subchunk2_size;
+};
+
 #define SYNTH_DALEK 0x0
 #define SYNTH_TRIANGLE  0x1
 #define SYNTH_DRUM_N_BASS 0x2
