@@ -13,7 +13,6 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-
 #ifndef PATH_MAX
 #define PATH_MAX 8192
 #endif
@@ -47,12 +46,16 @@ uint32_t hashish(char *s);
 #define CACHE_THRESHOLD 16
 #define CACHE_SIZE 1024
 
-
 void table_insert(char *key, char *value, int16_t ival);
 bool table_delete(char *key);
 node_t *table_search(char *key);
 void table_free(void);
 void table_dump(void);
+int keyboard_to_note(int k);
+
+bool delete_wav_file(const char *directory);
+bool is_wav_file(const char *path);
+void check_wav_files(const char *directory);
 
 char working_directory[PATH_MAX];
 void set_working_directory(void);

@@ -33,93 +33,6 @@ sound_t *sound_create(void)
     return sound;
 }
 
-
-char *wav_files[MAX_WAV_FILES] = { NULL };
-
-uint16_t wav_files_count = 0;
-char *file_currently_in_use = NULL;
-
-bool delete_wav_file(const char *directory)
-{
-    int latest_wav_file = 0;
-    bool found_file = false;
-    for (int i = 0; i < MAX_WAV_FILES; i++) {
-        if (wav_files[i] != NULL) {
-            latest_wav_file = i;
-            found_file = true;
-        }
-    }
-
-    if (found_file) {
-        char path[PATH_MAX] = { 0 };
-        snprintf(path, sizeof(path), "%s%c%s", directory,
-                 SLASH, wav_files[latest_wav_file]);
-        unlink(path);
-        current_action("deleted wav files %s", wav_files[latest_wav_file]);
-        table_delete(wav_files[latest_wav_file]);
-        free(wav_files[latest_wav_file]);
-        wav_files[latest_wav_file] = NULL;
-        return true;
-    }
-
-    return false;
-}
-
-bool is_wav_file(const char *path)
-{
-    char *dot = strrchr(path, '.');
-    if (!dot) {
-        return false;
-    }
-
-    dot++;
-
-    if (!strcmp(dot, "wav")) {
-        return true;
-    }
-
-    return false;
-}
-
-void check_wav_files(const char *directory)
-{
-    DIR *d = NULL;
-    struct dirent *dirent = NULL;
-
-    d = opendir(directory);
-    if (!d)
-        fail("opendir: %s\n", strerror(errno));
-
-    wav_files_count = 0;
-
-    while ((dirent = readdir(d)) != NULL) {
-        if (!strncmp(dirent->d_name, ".", 1)) {
-            continue;
-        }
-        char path[PATH_MAX] = { 0 };
-        struct stat fs;
-        snprintf(path, PATH_MAX, "%s%c%s", directory, SLASH,
-                 dirent->d_name);
-
-        stat(path, &fs);
-
-        if (S_ISDIR(fs.st_mode)) {
-            continue;
-        }
-
-        if (is_wav_file(path)) {
-            if (wav_files_count < MAX_WAV_FILES) {
-                if (wav_files[wav_files_count] != NULL) {
-                    //continue;
-                }
-                wav_files[wav_files_count++] = strdup(dirent->d_name);
-            }
-        }
-    }
-
-    closedir(d);
-}
-
 int effect_count = 0;
 
 void effect_normal(int16_t * sound, int count)
@@ -200,6 +113,11 @@ int16_t output_buffer[MAX_OUTFILE_SIZE] = { 0 };
 int output_buffer_index = 0;
 int output_buffer_len = 0;
 
+
+char *wav_files[MAX_WAV_FILES] = { NULL };
+
+uint16_t wav_files_count = 0;
+char *file_currently_in_use = NULL;
 
 void recording_start(void)
 {
@@ -316,10 +234,10 @@ void recording_stop(void)
     output_buffer_len = 0;
     output_buffer_index = 0;
 
-    current_action("finished recording!");
-
     free(file_currently_in_use);
     file_currently_in_use = NULL;
+
+    current_action("finished recording!");
 }
 
 void bass_mid_treble_apply(int16_t * chunk)
@@ -736,7 +654,6 @@ void play_wave_file(sound_t * sound, const char *filename)
 
     fclose(fp);
 
-    current_action("we are playing %s", filename);
     sound_t *wave = sound;
     wave->is_wavefile = true;
     wave->wavefile_pos = 0;
@@ -753,6 +670,8 @@ void play_wave_file(sound_t * sound, const char *filename)
     wav_file_spec.callback = waveform_default;
 
     wave->wavefile_len = wav_file_hdr.subchunk2_size;
+
+    current_action("we are playing %s", filename);
 }
 
 void play_music_file(sound_t * sound, const char *filename)
@@ -835,19 +754,3 @@ void play_music_file(sound_t * sound, const char *filename)
     SDL_CloseAudio();
 }
 
-
-/* keyboard to sound */
-int keyboard_to_note(int k)
-{
-    int note = k - ' ' - 24;
-    char key[1024] = { 0 };
-    snprintf(key, sizeof(key), "%c", k);
-
-    node_t *found = table_search(key);
-    if (found) {
-        note = found->ival + sound_range_start;
-        return note;
-    }
-
-    return note;
-}
