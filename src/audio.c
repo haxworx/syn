@@ -586,6 +586,7 @@ void process_sound(sound_t * sound)
                     screen_will_update = false;
                 }
             }
+            // visualization();
         } else {
             continuous = false;
         }
