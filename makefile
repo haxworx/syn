@@ -20,7 +20,7 @@ $(TARGET) : $(OBJECTS)
 	$(CC) $(OBJECTS) $(LIBS) $(SDL_LIBS) -o $@
 
 main.o: $(SRC_DIR)/main.c
-	$(CC) -c $(CFLAGS) $(SDL_LIBS) $(SRC_DIR)/main.c -o $@
+	$(CC) -c $(CFLAGS) $(SRC_DIR)/main.c -o $@
 
 stdinc.o: $(SRC_DIR)/stdinc.c
 	$(CC) -c $(CFLAGS) $(SRC_DIR)/stdinc.c -o $@
@@ -29,7 +29,7 @@ audio.o: $(SRC_DIR)/audio.c
 	$(CC) -c $(CFLAGS) $(SRC_DIR)/audio.c -o $@
 
 video.o: $(SRC_DIR)/video.c
-	$(CC) -c $(CFLAGS) $(SDL_LIBS) $(SRC_DIR)/video.c -o $@
+	$(CC) -c $(CFLAGS) $(SRC_DIR)/video.c -o $@
 
 
 clean:
