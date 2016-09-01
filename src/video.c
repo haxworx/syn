@@ -186,9 +186,9 @@ void update_screen(sound_t * sound)
     if (!logo_copy)
         fail("SDL_ConvertSurface: %s\n", SDL_GetError());
 
-#define FONT_SIZE 11
+#define FONT_SIZE 17
  
-#define FONT_PADDING 5
+#define FONT_PADDING 8
 
     SDL_Color whiteColor = { 255, 255, 255, 0 };
     SDL_Color redColor = { 199, 0, 0, 0 };
@@ -215,7 +215,7 @@ void update_screen(sound_t * sound)
     SDL_Surface *guide_text =
         TTF_RenderText_Blended(font, GUIDE_TEXT_0, whiteColor);
 
-#define INFO_TEXT "(c) Copyright 2016. Al Poole <netstar@gmail.com>. All Rights Reserved."
+#define INFO_TEXT "(c) Copyright 2016. Al Poole (netstar@gmail.com). All Rights Reserved."
 
     char screen_data[8192] = { 0 };
 
