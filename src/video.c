@@ -1,3 +1,8 @@
+/*
+    (c) Copyright 2015, 2016. Al Poole <netstar@gmail.com>
+    All Rights Reserved.
+*/
+
 #include "video.h"
 #include "audio.h"
 #include "stdinc.h"

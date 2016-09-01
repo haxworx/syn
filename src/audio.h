@@ -7,7 +7,6 @@
 #define SAMPLES 2048
 #define CHANNELS 2
 
-SDL_AudioSpec wav_spec;
 
 int counter;
 
@@ -29,25 +28,16 @@ struct sound_t {
     void *data;
 };
 
-#define MAX_SOUND_COUNT 16
-
-sound_t *sounds[MAX_SOUND_COUNT];
-
-uint8_t sounds_count;
-int16_t sound_range_start;
-
-int16_t sound_buffer[SAMPLES * CHANNELS];
-int16_t *waveptr;
-
-bool wavefile_playing;
-bool recording_enabled;
-
 int16_t global_bass, global_mid, global_treble;
 int32_t global_pitch;
 
+bool wavefile_playing;
+bool recording_enabled;
 bool synth_continuous;
 
 uint32_t start_time;
+
+int16_t *waveptr;
 
 /* this is a wav_h for RIFF/WAVE file */
 struct wav_file_hdr_t {
@@ -76,13 +66,24 @@ struct wav_file_hdr_t {
 #define SYNTH_CREEPY_FUZZ 0x7
 #define SYNTH_GIRLS_AND_BOYS 0x8
 
+#define MAX_SOUND_COUNT 16
+uint8_t sounds_count;
+int16_t sound_range_start;
+
 #define SOUND_PITCH_MAX 20000
 #define SOUND_PITCH_MIN -4400.0
 
 sound_t *sound_create(void);
+sound_t *initialise(void);
+void closedown(sound_t * sound);
+void process_sound(sound_t * sound);
+void reset_defaults(sound_t * sound);
+void recording_start(void);
+void recording_stop(void);
 
+SDL_AudioSpec wav_spec;
 #define MAX_WAV_FILES 10
-char *wav_files[MAX_WAV_FILES];
+extern char *wav_files[MAX_WAV_FILES];
 
 bool delete_wav_file(const char *directory);
 bool is_wav_file(const char *path);
@@ -90,14 +91,6 @@ void check_wav_files(const char *directory);
 void play_wave_file(sound_t * sound, const char *filename);
 void waveform_wavfile(void *userdata, uint8_t * stream, int len);
 void play_music_file(sound_t * sound, const char *filename);
-
-void recording_start(void);
-void recording_stop(void);
-
-sound_t *initialise(void);
-void process_sound(sound_t * sound);
-void reset_defaults(sound_t * sound);
-void closedown(void);
 
 int keyboard_to_note(int k);
 

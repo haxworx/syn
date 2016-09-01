@@ -14,7 +14,7 @@ endif
 CFLAGS = -std=c99 -Wall -g -D$(OS) -D_FILE_OFFSET_BITS=64 $(shell pkg-config --cflags $(PKGS))
 SDL_LIBS = $(shell pkg-config --libs $(PKGS))
 
-OBJECTS = stdinc.o audio.o video.o main.o
+OBJECTS = stdinc.o events.o audio.o video.o main.o
 
 $(TARGET) : $(OBJECTS)
 	$(CC) $(OBJECTS) $(LIBS) $(SDL_LIBS) -o $@
@@ -31,6 +31,8 @@ audio.o: $(SRC_DIR)/audio.c
 video.o: $(SRC_DIR)/video.c
 	$(CC) -c $(CFLAGS) $(SRC_DIR)/video.c -o $@
 
+events.o: $(SRC_DIR)/events.c
+	$(CC) -c $(CFLAGS) $(SRC_DIR)/events.c -o $@
 
 clean:
 	-rm $(OBJECTS) $(TARGET)

@@ -5,6 +5,7 @@
 #include <SDL_image.h>
 #include <SDL_ttf.h>
 #include "audio.h"
+
 #define WIDTH 640
 #define HEIGHT 480
 #define FPS 60
@@ -19,6 +20,7 @@ SDL_Texture *texture;
 TTF_Font *font;
 SDL_Joystick *Gamepad;
 
+/* visualisation types */
 #define VISUAL_WAVE 0
 #define VISUAL_ICON 1
 

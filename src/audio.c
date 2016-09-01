@@ -1,6 +1,14 @@
+/*
+    (c) Copyright 2015, 2016. Al Poole <netstar@gmail.com>
+    All Rights Reserved.
+*/
+
 #include "stdinc.h"
 #include "video.h"
 #include "audio.h"
+
+sound_t *sounds[MAX_SOUND_COUNT] = { NULL };
+int16_t sound_buffer[SAMPLES * CHANNELS];
 
 // creates a new sound object
 
@@ -111,8 +119,6 @@ void check_wav_files(const char *directory)
 
     closedir(d);
 }
-
-
 
 int effect_count = 0;
 
@@ -594,8 +600,10 @@ void process_sound(sound_t * sound)
 }
 
 
-void closedown(void)
+void closedown(sound_t *sound)
 {
+    free(sound);
+
     table_free();
 
     if (recording_enabled) {
@@ -608,6 +616,9 @@ void closedown(void)
 
 sound_t *initialise(void)
 {
+
+    init_sdl();
+
     set_working_directory();
 
     int16_t i = sound_range_start;
@@ -647,6 +658,9 @@ sound_t *initialise(void)
     global_pitch = 440.00;
 
     sound_t *sound = sound_system_up();
+
+    check_wav_files(working_directory);
+    update_screen(sound);
 
     return sound;
 }
