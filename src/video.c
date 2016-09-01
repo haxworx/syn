@@ -169,7 +169,7 @@ void update_screen(sound_t * sound)
         update_console(sound);
     /* In case we need/want a new image for recording... */
     if (!logo_recording)
-        logo_recording = load_image("images/logo.png");
+        logo_recording = load_image("images/recording.png");
 
     if (!logo)
         logo = load_image(filename);
@@ -195,7 +195,7 @@ void update_screen(sound_t * sound)
     SDL_Color blueColor = { 88, 199, 9, 0 };
 
     if (!font) {
-        font = TTF_OpenFont("fonts/envy.ttf", FONT_SIZE);
+        font = TTF_OpenFont("fonts/Typewriter.ttf", FONT_SIZE);
         if (!font)
             fail("TTF_OpenFont: %s\n", TTF_GetError());
     }

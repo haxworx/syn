@@ -6,8 +6,8 @@
 #include <SDL_ttf.h>
 #include "audio.h"
 
-#define WIDTH 640
-#define HEIGHT 480
+#define WIDTH 800
+#define HEIGHT 600
 #define FPS 60
 
 uint32_t pixels[WIDTH * HEIGHT];
