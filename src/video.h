@@ -16,7 +16,7 @@ SDL_Surface *logo;
 SDL_Surface *logo_recording;
 SDL_Renderer *renderer;
 SDL_Texture *texture;
-TTF_Font *font; 
+TTF_Font *font;
 SDL_Joystick *Gamepad;
 
 #define VISUAL_WAVE 0
@@ -28,9 +28,8 @@ void update_screen(sound_t * sound);
 void visualization(void);
 void set_screen_data(sound_t * sound, char *buf, int len);
 void set_files_list(char *buf, int len);
-void update_console(sound_t *sound);
+void update_console(sound_t * sound);
 void current_action(char *fmt, ...);
 
 
 #endif
-

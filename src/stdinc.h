@@ -35,11 +35,11 @@ void fail(char *fmt, ...);
 
 typedef struct node_t node_t;
 struct node_t {
-        char *key;
-        char *value;
-        int16_t ival;
-        uint8_t use_count;
-        node_t *next;
+    char *key;
+    char *value;
+    int16_t ival;
+    uint8_t use_count;
+    node_t *next;
 };
 
 uint32_t hashish(char *s);

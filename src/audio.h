@@ -13,20 +13,20 @@ int counter;
 
 typedef struct sound_t sound_t;
 struct sound_t {
-        int key;
-        double A;
-        double SR;
-        uint32_t volume;
-        double pitch;
-        uint8_t silence;
-        double duration;
-        int16_t note;
-        int effects;
-        bool is_recording;
-        bool is_wavefile;
-        uint32_t wavefile_pos;
-        uint32_t wavefile_len;
-        void *data;
+    int key;
+    double A;
+    double SR;
+    uint32_t volume;
+    double pitch;
+    uint8_t silence;
+    double duration;
+    int16_t note;
+    int effects;
+    bool is_recording;
+    bool is_wavefile;
+    uint32_t wavefile_pos;
+    uint32_t wavefile_len;
+    void *data;
 };
 
 #define MAX_SOUND_COUNT 16
@@ -72,14 +72,14 @@ bool is_wav_file(const char *path);
 void check_wav_files(const char *directory);
 void play_wave_file(sound_t * sound, const char *filename);
 void waveform_wavfile(void *userdata, uint8_t * stream, int len);
-void play_music_file(sound_t *sound, const char *filename);
+void play_music_file(sound_t * sound, const char *filename);
 
 void recording_start(void);
 void recording_stop(void);
 
 sound_t *initialise(void);
 void process_sound(sound_t * sound);
-void reset_defaults(sound_t *sound);
+void reset_defaults(sound_t * sound);
 void closedown(void);
 
 int keyboard_to_note(int k);
