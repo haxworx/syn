@@ -1,11 +1,13 @@
 #ifndef __STDINC_H__
 #define __STDINC_H__
+#define _XOPEN_SOURCE 501
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdarg.h>
+#include <string.h>
 #include <unistd.h>
 #include <time.h>
 #include <math.h>
