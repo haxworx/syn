@@ -7,14 +7,13 @@
 #include "video.h"
 #include "audio.h"
 
-sound_t *sound_create(synth_t *synth)
+sound_t *sound_new(synth_t *synth)
 {
     sound_t *sound = calloc(1, sizeof(sound_t));
     if (!sound)
         fail("calloc: %s\n", strerror(errno));
 
     sound->A = 30000;
-    sound->volume = 80;         // SDL_MIX_MAXVOLUME;
     sound->effects = SYNTH_DALEK;
     sound->SR = 44100;
     sound->silence = 0;
@@ -115,12 +114,14 @@ void effect_lazer_quest(int16_t * sound, int count)
 
 void recording_start(synth_t *synth)
 {
+    DIR *d;
+    struct dirent *dirent;
+    char path[PATH_MAX];
+    struct stat st;
+    int i;
+
     synth->is_recording = true;
 
-    char path[PATH_MAX] = { 0 };
-
-    DIR *d = NULL;
-    struct dirent *dirent = NULL;
     d = opendir(synth->working_directory);
     if (!d)
         fail("opendir: %s\n", strerror(errno));
@@ -129,14 +130,14 @@ void recording_start(synth_t *synth)
         if (!strncmp(dirent->d_name, ".", 1)) {
             continue;
         }
-        struct stat fs;
+        
         snprintf(path, PATH_MAX, "%s%c%s", synth->working_directory, SLASH,
                  dirent->d_name);
 
-        stat(path, &fs);
+        stat(path, &st);
 
-        if (!S_ISDIR(fs.st_mode)) {
-            table_insert(dirent->d_name, NULL, fs.st_size);
+        if (!S_ISDIR(st.st_mode)) {
+            table_insert(dirent->d_name, NULL, st.st_size);
         }
     }
 
@@ -145,7 +146,7 @@ void recording_start(synth_t *synth)
     char filename[PATH_MAX] = { 0 };
     node_t *found = NULL;
 
-    for (int i = 0; i < MAX_WAV_FILES; i++) {
+    for (i = 0; i < MAX_WAV_FILES; i++) {
         snprintf(filename, sizeof(filename), "%02d.wav", i);
         found = table_search(filename);
         if (!found) {
@@ -166,16 +167,20 @@ void recording_start(synth_t *synth)
     if (!synth->output_file)
         fail("fopen: %s\n", strerror(errno));
 
-    current_action("recording to %s", filename);
+    display_action("recording to %s", filename);
 }
 
 void recording_stop(synth_t *synth)
 {
     struct wav_file_hdr_t wav_file_hdr;
+    int i;
+
     memset(&wav_file_hdr, 0, sizeof(struct wav_file_hdr_t));
+
     if (synth->continuous) {
         synth->continuous = false;
     }
+
     /* Generate a RIFF/WAVE header */
     wav_file_hdr.chunk_id[0] = 'R';
     wav_file_hdr.chunk_id[1] = 'I';
@@ -217,7 +222,7 @@ void recording_stop(synth_t *synth)
     fwrite(&wav_file_hdr, sizeof(struct wav_file_hdr_t), 1, synth->output_file);
 
     // write the audio data!
-    for (int i = 0; i < synth->output_buffer_len / 2; i++) {
+    for (i = 0; i < synth->output_buffer_len / 2; i++) {
         fwrite(&synth->output_buffer[i], sizeof(int16_t), 1, synth->output_file);
     }
 
@@ -231,7 +236,7 @@ void recording_stop(synth_t *synth)
     free(synth->recording_path_current);
     synth->recording_path_current = NULL;
 
-    current_action("finished recording!");
+    display_action("finished recording!");
 }
 
 void bass_mid_treble_apply(synth_t *synth, int16_t * chunk)
@@ -276,7 +281,7 @@ void waveform_default(void *userdata, uint8_t * stream, int len)
             if (snd->is_wavefile) {
                 continue;
             }
-            sound_t *s = sound_create(synth);
+            sound_t *s = sound_new(synth);
             s->key = i;
             s->note = keyboard_to_note(synth, i);
             synth->sounds[synth->sounds_count++] = s;
@@ -375,7 +380,7 @@ void waveform_default(void *userdata, uint8_t * stream, int len)
     SDL_memset(stream, 0, len);
 
     if (!snd->is_wavefile) {
-        SDL_MixAudio(stream, (uint8_t *) synth->waveptr, len, snd->volume);
+        SDL_MixAudio(stream, (uint8_t *) synth->waveptr, len, synth->volume);
     } else {
         // problematic
         if (snd->wavefile_pos >= snd->wavefile_len) {
@@ -386,7 +391,7 @@ void waveform_default(void *userdata, uint8_t * stream, int len)
             return;
         }
 
-        SDL_MixAudio(stream, (uint8_t *) wav_pointer, len, snd->volume);
+        SDL_MixAudio(stream, (uint8_t *) wav_pointer, len, synth->volume);
         snd->wavefile_pos += len;
     }
 
@@ -398,7 +403,6 @@ void waveform_default(void *userdata, uint8_t * stream, int len)
     if (synth->is_recording) {
         for (int i = 0; i < len / 2; i++) {
             if (synth->output_buffer_len >= MAX_OUTFILE_SIZE) {
-                snd->is_recording = false;
                 recording_stop(synth);
                 return;
             }
@@ -419,7 +423,7 @@ void reset_defaults(synth_t *synth)
 {
     sound_t *sound = synth->sound;
     synth->pitch = sound->pitch = 440.0;
-    sound->volume = 80;         //128;
+    synth->volume = 80;         //128;
 //      sound_range_start = 0;
     synth->bass = synth->mid = synth->treble = 0;       // reset "dials"
 
@@ -427,7 +431,7 @@ void reset_defaults(synth_t *synth)
 
 sound_t *sound_system_up(synth_t *synth)
 {
-    sound_t *sound = sound_create(synth);
+    sound_t *sound = sound_new(synth);
     SDL_AudioSpec wav_spec;
     SDL_memset(&wav_spec, 0, sizeof(wav_spec));
     wav_spec.freq = 44100;
@@ -496,8 +500,8 @@ void process_sound(synth_t *synth)
             }
             if (bending_pitch) {
                 if (screen_will_update) {
-                    current_action("pitch bending...");
-                    update_screen(synth);
+                    display_action("pitch bending...");
+                    display_refresh(synth);
                     screen_will_update = false;
                 }
             }
@@ -508,9 +512,9 @@ void process_sound(synth_t *synth)
     }
 
     if (bending_pitch)
-        current_action("end of the bend...");
+        display_action("end of the bend...");
 
-    update_screen(synth);
+    display_refresh(synth);
     bending_pitch = false;
     sound->pitch = synth->pitch = pitch_old;
 }
@@ -536,6 +540,7 @@ void synth_shutdown(synth_t *synth)
 static void
 _work_directory_set(synth_t *synth)
 {
+    struct stat st;
     char *homedrive = getenv("HOMEDRIVE");
     if (homedrive) {
         char *homepath = getenv("HOMEPATH");
@@ -549,8 +554,7 @@ _work_directory_set(synth_t *synth)
         snprintf(synth->working_directory, sizeof(synth->working_directory), "%c%c%s", '.', SLASH, SYNTH_DATA_DIR_NAME);
     }
 
-    struct stat fstats;
-    if (stat(synth->working_directory, &fstats) < 0)
+    if (stat(synth->working_directory, &st) < 0)
 #ifdef WINDOWS
         mkdir(synth->working_directory);
 #else
@@ -602,8 +606,9 @@ synth_t *synth_new(void)
     table_insert("m", NULL, i++);
 
     self->pitch = 440.00;
+    self->volume = 80;
 
-    check_wav_files(self);
+    wave_files_count(self);
 
     self->recording_path_current = NULL;
     
@@ -617,19 +622,6 @@ synth_t *synth_new(void)
     *self->sounds = NULL;
 
     return self;
-}
-
-void chomp(char *str)
-{
-    char *s = str;
-
-    while (*s) {
-        if (*s == '\r' || *s == '\n') {
-            *s = '\0';
-            return;
-        }
-        ++s;
-    }
 }
 
 /* two functions to play WAV files from disk */
@@ -649,35 +641,35 @@ void waveform_wavfile(void *userdata, uint8_t * stream, int len)
 
 // FIXME: playing the same file as is recording...
 
-void play_wave_file(synth_t *synth, const char *filename)
+void wave_file_play(synth_t *synth, const char *filename)
 {
+    FILE *f;
+    struct wav_file_hdr_t wav_file_hdr;
+    SDL_AudioSpec wav_file_spec;
+    char path[PATH_MAX];
+    size_t res, len;
     sound_t * sound = synth->sound;
 
     if (synth->recording_path_current != NULL
         && !strcmp(filename, synth->recording_path_current)) {
-        current_action
+        display_action
             ("you cannot play a file that is currently recording");
         return;
     }
 
-    SDL_AudioSpec wav_file_spec;
     SDL_memset(&wav_file_spec, 0, sizeof(SDL_AudioSpec));
-    struct wav_file_hdr_t wav_file_hdr;
-    char path[PATH_MAX] = { 0 };
 
     snprintf(path, sizeof(path), "%s%c%s", synth->working_directory, SLASH,
              filename);
-     printf("path: %s\n", path);
-    FILE *fp = fopen(path, "rb");
-    if (!fp) {
-        current_action("that audio file doesn't seem to exist!");
+    f = fopen(path, "rb");
+    if (!f) {
+        display_action("that audio file doesn't seem to exist!");
         return;
     }
     // read file wave header!
-    size_t res =
-        fread(&wav_file_hdr, sizeof(struct wav_file_hdr_t), 1, fp);
+    res = fread(&wav_file_hdr, sizeof(struct wav_file_hdr_t), 1, f);
     if (!res) {
-        current_action("not playing potentially corrupt file??");
+        display_action("not playing potentially corrupt file??");
         return;
     }
 
@@ -686,14 +678,14 @@ void play_wave_file(synth_t *synth, const char *filename)
     if (!audio_buffer)
         fail("calloc: %s\n", strerror(errno));
 
-    size_t len = fread(audio_buffer, sizeof(int16_t),
+    len = fread(audio_buffer, sizeof(int16_t),
                        wav_file_hdr.subchunk2_size,
-                       fp);
+                       f);
     if (!len) {
         fail("fread: %s\n", strerror(errno));
     }
 
-    fclose(fp);
+    fclose(f);
 
     sound_t *wave = sound;
     wave->is_wavefile = true;
@@ -712,90 +704,11 @@ void play_wave_file(synth_t *synth, const char *filename)
 
     wave->wavefile_len = wav_file_hdr.subchunk2_size;
 
-    current_action("we are playing %s", filename);
+    display_action("we are playing %s", filename);
 }
 
-void play_music_file(synth_t * synth, const char *filename)
-{
-    char buf[8192] = { 0 };
-    sound_t *s = sound_create(synth);
-    SDL_AudioSpec wav_spec;
-    SDL_memset(&wav_spec, 0, sizeof(wav_spec));
-    wav_spec.freq = 44100;
-    wav_spec.format = AUDIO_S16SYS;
-    wav_spec.channels = 1;
-    wav_spec.samples = SAMPLES;
-    wav_spec.userdata = s;
-    wav_spec.callback = waveform_default;
-
-    SDL_CloseAudio();
-
-    if (SDL_OpenAudio(&wav_spec, NULL) < 0)
-        fail("SDL_OpenAudio: %s\n", SDL_GetError());
-
-    start_time = SDL_GetTicks();
-
-    FILE *f = fopen(filename, "r");
-    if (!f) {
-        return;
-        fail("fopen: %s\n", strerror(errno));
-    }
-
-    printf("playing: %s\n", filename);
-
-    while (fgets(buf, sizeof(buf), f) != NULL) {
-        char *start = buf;
-        // nah!  chomp(buf);
-        if (*start == '#') {
-            continue;
-        }
-
-        uint8_t field = 0;
-        char *p = start;
-        while (*p) {
-            if (*p == '\t' || *p == '\n') {
-                char *end = p;
-                *end = '\0';
-                char *str = NULL;
-                // FORMAT IS "INT\tDOUBLE\tINT\n"
-                switch (field) {
-                case 0:
-                    s->note = atoi(start);
-                    s->note -= 20;
-                    ++field;
-                    break;
-
-                case 1:
-                    s->duration = strtod(start, &str);
-                    ++field;
-                    break;
-
-                case 2:
-                    s->effects = atoi(start);
-                    ++field;
-                    break;
-                }
-                start = end + 1;
-            }
-
-            ++p;
-
-            if (field == 3) {
-                //update_screen(sound);
-                field = 0;
-                SDL_PauseAudio(0);
-                SDL_Delay(1000 * s->duration);
-                SDL_PauseAudio(1);
-            }
-        }
-    }
-
-    fclose(f);
-    free(s);
-    SDL_CloseAudio();
-}
-
-bool is_wav_file(const char *path)
+static bool
+is_wav_file(const char *path)
 {
     char *dot = strrchr(path, '.');
     if (!dot) {
@@ -814,7 +727,7 @@ bool is_wav_file(const char *path)
 /* Basically checks how many recordings are on disk */
 /* 00.wav to 09.wav ... crude :) */
 
-void check_wav_files(synth_t *synth)
+void wave_files_count(synth_t *synth)
 {
     DIR *d = NULL;
     struct dirent *dirent = NULL;
@@ -855,28 +768,27 @@ void check_wav_files(synth_t *synth)
 }
 
 /* These are all actions on files */
-bool delete_wav_file(synth_t *synth)
+bool wave_file_del(synth_t *synth)
 {
-    int latest_wav_file = 0;
-    bool found_file = false;
+    int i, idx;
+    char path[PATH_MAX];
+    char *found_file = NULL;
     const char *directory = synth->working_directory;
 
-    for (int i = 0; i < MAX_WAV_FILES; i++) {
+    for (i = 0; i < MAX_WAV_FILES; i++) {
         if (synth->wav_files[i] != NULL) {
-            latest_wav_file = i;
-            found_file = true;
+            found_file = synth->wav_files[i];
+            idx = i;
         }
     }
 
     if (found_file) {
-        char path[PATH_MAX] = { 0 };
-        snprintf(path, sizeof(path), "%s%c%s", directory,
-                 SLASH, synth->wav_files[latest_wav_file]);
+        snprintf(path, sizeof(path), "%s%c%s", directory, SLASH, found_file);
         unlink(path);
-        current_action("deleted wav files %s", synth->wav_files[latest_wav_file]);
-        table_delete(synth->wav_files[latest_wav_file]);
-        free(synth->wav_files[latest_wav_file]);
-        synth->wav_files[latest_wav_file] = NULL;
+        display_action("deleted wav file %s", found_file);
+        table_delete(found_file);
+        free(synth->wav_files[idx]);
+        synth->wav_files[idx] = NULL;
         return true;
     }
 

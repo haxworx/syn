@@ -8,23 +8,17 @@
 #include "video.h"
 #include "events.h"
 
-int main(int argc, char **argv)
+int main(void)
 {
-    (void) argc, (void) argv;
-
     printf("\n(c) Copyright 2016. Al Poole. All rights reserved.\n");
     printf("Close window to exit, otherwise, play the keyboard!\n");
     printf("Thanks to: Ed Poole and Steven Carle for debugging!\n\n");
 
-    fflush(stdout);
-
     synth_t *synth = synth_new();
 
-    current_action("Visit http://haxlab.org for more!");
+    display_action("Visit http://haxlab.org for more!");
 
-    do {
-
-    } while (Run(synth));
+    Run(synth);
 
     synth_shutdown(synth);
 

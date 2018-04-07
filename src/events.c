@@ -15,21 +15,6 @@ int Run(synth_t *synth)
 
     sound_t *sound = synth->sound;
 
-    if (sound->is_wavefile) {
-        if (sound->wavefile_pos < sound->wavefile_len) {
-            SDL_Delay(50);
-        } else {
-            sound->is_wavefile = false;
-            free(sound->data);
-            sound->wavefile_len = 0;
-            sound->wavefile_pos = 0;
-        }
-   }
-
-    if (synth->is_recording) {
-        SDL_Delay(2);
-        sound->is_recording = true;
-    }
     while (SDL_WaitEvent(&event)) {
             start_time = SDL_GetTicks();
             switch (event.type) {
@@ -68,16 +53,6 @@ int Run(synth_t *synth)
                         break;
                     }
                     update_console(sound);
-                    break;
-                }
-
-            case SDL_DROPFILE:{
-                    char *file = event.drop.file;
-                    current_action("Playing music file %s", file);
-                    update_screen(synth);
-                    play_music_file(synth, file);
-                    free(sound);
-                    sound = sound_create(synth);
                     break;
                 }
 
@@ -147,63 +122,63 @@ int Run(synth_t *synth)
                     break;
 
                 case SDLK_F11:
-                    if (sound->volume > 0) {
-                        sound->volume -= 1;
+                    if (synth->volume > 0) {
+                        synth->volume -= 1;
                     }
                     break;
 
                 case SDLK_F12:
-                    if (sound->volume < SDL_MIX_MAXVOLUME) {
-                        sound->volume += 1;
+                    if (synth->volume < SDL_MIX_MAXVOLUME) {
+                        synth->volume += 1;
                     }
                     break;
 
                 case SDLK_HOME:
                     if (synth->is_recording) {
-                        current_action("still recording!");
+                        display_action("still recording!");
                         break;
                     }
                     recording_start(synth);
-                    sound->is_recording = true;
-                    update_screen(synth);
+                    synth->is_recording = true;
+                    display_refresh(synth);
                     break;
 
                 case SDLK_END:
-                    if (sound->is_recording) {
+                    if (synth->is_recording) {
                         recording_stop(synth);
-                        sound->is_recording = false;
-                        update_screen(synth);
+                        synth->is_recording = false;
+                        display_refresh(synth);
                         synth->continuous = false;
-                        current_action("stopped recording!");
+                        display_action("stopped recording!");
                     }
                     break;
 
                 case SDLK_DELETE:
                     if (!synth->is_recording) {
-                        bool del = delete_wav_file(synth);
+                        bool del = wave_file_del(synth);
                         if (del) {
-                            current_action("deleted wav file!");
+                            display_action("deleted wav file!");
                         } else {
-                            current_action
+                            display_action
                                 ("you can't delete what doesn't exist!");
                         }
                     } else {
-                        current_action("still recording!");
+                        display_action("still recording!");
                     }
-                    update_screen(synth);
+                    display_refresh(synth);
                     break;
 
                     /* this'll be bogus, who cares! */
                 case SDLK_SPACE:
                     if (!synth->continuous) {
-                        current_action("continuous waveform!");
+                        display_action("continuous waveform!");
                         synth->continuous = true;
                     }
                     break;
 
                 case SDLK_BACKSPACE:
                     reset_defaults(synth);
-                    current_action("audio defaults reset!");
+                    display_action("audio defaults reset!");
                     break;
 
                 case SDLK_UP:
@@ -221,34 +196,34 @@ int Run(synth_t *synth)
                     break;
 
                 case SDLK_0:
-                    play_wave_file(synth, "00.wav");
+                    wave_file_play(synth, "00.wav");
                     break;
                 case SDLK_1:
-                    play_wave_file(synth, "01.wav");
+                    wave_file_play(synth, "01.wav");
                     break;
                 case SDLK_2:
-                    play_wave_file(synth, "02.wav");
+                    wave_file_play(synth, "02.wav");
                     break;
                 case SDLK_3:
-                    play_wave_file(synth, "03.wav");
+                    wave_file_play(synth, "03.wav");
                     break;
                 case SDLK_4:
-                    play_wave_file(synth, "04.wav");
+                    wave_file_play(synth, "04.wav");
                     break;
                 case SDLK_5:
-                    play_wave_file(synth, "05.wav");
+                    wave_file_play(synth, "05.wav");
                     break;
                 case SDLK_6:
-                    play_wave_file(synth, "06.wav");
+                    wave_file_play(synth, "06.wav");
                     break;
                 case SDLK_7:
-                    play_wave_file(synth, "07.wav");
+                    wave_file_play(synth, "07.wav");
                     break;
                 case SDLK_8:
-                    play_wave_file(synth, "08.wav");
+                    wave_file_play(synth, "08.wav");
                     break;
                 case SDLK_9:
-                    play_wave_file(synth, "09.wav");
+                    wave_file_play(synth, "09.wav");
                     break;
 
                 case SDLK_ESCAPE:
@@ -258,25 +233,25 @@ int Run(synth_t *synth)
                 default:
                     sound->A = 30000;
                     if (!synth->is_recording) {
-                        current_action
+                        display_action
                             ("Visit http://haxlab.org for more!");
                     }
                     process_sound(synth);
                     sound->A = 0;
                     break;
                 }
-                check_wav_files(synth);
-                update_screen(synth);
+                wave_files_count(synth);
+                display_refresh(synth);
                 break;
 
             case SDL_MOUSEWHEEL:
                 if (event.wheel.y < 0) {
-                    if (sound->volume < SDL_MIX_MAXVOLUME)
-                        sound->volume += 1;
-                } else if (sound->volume > 0)
-                    sound->volume -= 1;
+                    if (synth->volume < SDL_MIX_MAXVOLUME)
+                        synth->volume += 1;
+                } else if (synth->volume > 0)
+                    synth->volume -= 1;
 
-                update_screen(synth);
+                display_refresh(synth);
                 break;
 
             case SDL_QUIT:
@@ -286,11 +261,11 @@ int Run(synth_t *synth)
             case SDL_WINDOWEVENT:
                 switch (event.window.event) {
                 case SDL_WINDOWEVENT_EXPOSED:
-                    update_screen(synth);
+                    display_refresh(synth);
                     break;
 
                 case SDL_WINDOWEVENT_SIZE_CHANGED:
-                    update_screen(synth);
+                    display_refresh(synth);
                     break;
                 }
 

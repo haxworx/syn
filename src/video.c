@@ -80,7 +80,7 @@ SDL_Surface *load_image(char *path)
 // this is a quick + dirty way to keep our action
 // on display.
 
-char current_action_text[8192] = { 0 };
+char display_action_text[8192] = { 0 };
 
 void update_console(sound_t * sound)
 {
@@ -89,7 +89,7 @@ void update_console(sound_t * sound)
     printf("BASS: %d MID: %d TREBLE: %d\n", global_bass, global_mid,
            global_treble);
     printf("PITCH: %dHz TONE: %d\n", global_pitch, sound->note);
-    printf("DEBUG: %s\n\n", current_action_text);
+    printf("DEBUG: %s\n\n", display_action_text);
 #endif
 }
 
@@ -159,10 +159,10 @@ void set_screen_data(synth_t * synth, char *buf, int len)
 
     snprintf(buf, len,
              "Pitch: %0.2f Hz  Tone: %d  Volume: %d  Instrument: \"%s\"",
-             sound->pitch, synth->sound_range_start, sound->volume, waveform);
+             sound->pitch, synth->sound_range_start, synth->volume, waveform);
 }
 
-void update_screen(synth_t * synth)
+void display_refresh(synth_t * synth)
 {
     sound_t *sound = synth->sound;
     char *filename = "images/logo.png";
@@ -235,13 +235,13 @@ void update_screen(synth_t * synth)
         fail("TTF_RenderText_Blended: %s\n", TTF_GetError());
 
     SDL_Surface *action_text =
-        TTF_RenderText_Blended(font, current_action_text, *dataColor);
+        TTF_RenderText_Blended(font, display_action_text, *dataColor);
     if (!action_text)
         fail("TTF_RenderText_Blended: %s\n", TTF_GetError());
 
     //TTF_SetFontStyle(font, TTF_STYLE_BOLD);
 
-    check_wav_files(synth); // expensive???
+    wave_files_count(synth); // expensive???
     char files_list[8192] = { 0 };
     set_files_list(synth, files_list, sizeof(files_list));
 
@@ -281,9 +281,9 @@ void update_screen(synth_t * synth)
 
     SDL_Rect action_rect;
     action_rect.x =
-        (WIDTH / 2) - (strlen(current_action_text) * (FONT_SIZE / 2)) / 2;
+        (WIDTH / 2) - (strlen(display_action_text) * (FONT_SIZE / 2)) / 2;
     action_rect.y = (HEIGHT / 2) + 128;
-    action_rect.w = (FONT_SIZE / 2) * strlen(current_action_text);
+    action_rect.w = (FONT_SIZE / 2) * strlen(display_action_text);
     action_rect.h = FONT_SIZE;
 
     SDL_Rect files_rect;
@@ -419,7 +419,7 @@ void visualization(synth_t *synth)
 }
 
 
-void current_action(char *fmt, ...)
+void display_action(char *fmt, ...)
 {
     char buf[8192] = { 0 };
     va_list ap;
@@ -428,5 +428,5 @@ void current_action(char *fmt, ...)
     vsnprintf(buf, sizeof(buf), fmt, ap);
     va_end(ap);
 
-    snprintf(current_action_text, sizeof(current_action_text), "%s", buf);
+    snprintf(display_action_text, sizeof(display_action_text), "%s", buf);
 }

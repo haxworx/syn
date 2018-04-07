@@ -20,13 +20,11 @@ struct sound_t {
     int key;
     double A;
     double SR;
-    uint32_t volume;
     double pitch;
     uint8_t silence;
     double duration;
     int16_t note;
     int effects;
-    bool is_recording;
     bool is_wavefile;
     uint32_t wavefile_pos;
     uint32_t wavefile_len;
@@ -36,6 +34,7 @@ struct sound_t {
 typedef struct _synth_t {
    char working_directory[PATH_MAX];
 
+   uint8_t volume;
    int16_t bass, mid, treble;
    int32_t pitch;
 
@@ -91,7 +90,7 @@ struct wav_file_hdr_t {
 synth_t *synth_new(void);
 void synth_shutdown(synth_t *synth);
 
-sound_t *sound_create(synth_t *synth);
+sound_t *sound_new(synth_t *synth);
 
 void recording_start(synth_t *synth);
 void recording_stop(synth_t *synth);
@@ -99,14 +98,13 @@ void recording_stop(synth_t *synth);
 void reset_defaults(synth_t * synth);
 void process_sound(synth_t *synth);
 
-void play_wave_file(synth_t *synth, const char *filename);
 void waveform_wavfile(void *userdata, uint8_t * stream, int len);
 void play_music_file(synth_t *synth, const char *filename);
 int keyboard_to_note(synth_t *synth, int k);
 
-bool delete_wav_file(synth_t *synth);
-bool is_wav_file(const char *path);
-void check_wav_files(synth_t *synth);
+void wave_file_play(synth_t *synth, const char *filename);
+bool wave_file_del(synth_t *synth);
+void wave_files_count(synth_t *synth);
 
 
 #define SYNTH_DALEK 0x0
