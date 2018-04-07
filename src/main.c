@@ -1,28 +1,30 @@
 /*
-	(c) Copyright 2015, 2016. Al Poole <netstar@gmail.com>
-	All Rights Reserved.
-*/
+        (c) Copyright 2015, 2016. Al Poole <netstar@gmail.com>
+        All Rights Reserved.
+ */
 
 #include "stdinc.h"
 #include "audio.h"
 #include "video.h"
 #include "events.h"
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
-    (void) argc; (void) argv;
+   (void)argc; (void)argv;
 
-    printf("\n(c) Copyright 2016. Al Poole. All rights reserved.\n");
-    printf("Close window to exit, otherwise, play the keyboard!\n");
-    printf("Thanks to: Ed Poole and Steven Carle for debugging!\n\n");
+   printf("\n(c) Copyright 2016. Al Poole. All rights reserved.\n");
+   printf("Close window to exit, otherwise, play the keyboard!\n");
+   printf("Thanks to: Ed Poole and Steven Carle for debugging!\n\n");
 
-    synth_t *synth = synth_new();
+   synth_t *synth = synth_new();
 
-    display_action("Visit http://haxlab.org for more!");
+   display_action("Visit http://haxlab.org for more!");
 
-    Run(synth);
+   Run(synth);
 
-    synth_shutdown(synth);
+   synth_shutdown(synth);
 
-    return EXIT_SUCCESS;
+   return EXIT_SUCCESS;
 }
+

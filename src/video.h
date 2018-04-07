@@ -6,9 +6,9 @@
 #include <SDL_ttf.h>
 #include "audio.h"
 
-#define WIDTH 800
+#define WIDTH  800
 #define HEIGHT 600
-#define FPS 60
+#define FPS    60
 
 uint32_t pixels[WIDTH * HEIGHT];
 
@@ -24,14 +24,13 @@ SDL_Joystick *Gamepad;
 #define VISUAL_WAVE 0
 #define VISUAL_ICON 1
 
-void init_sdl(void);
+void         init_sdl(void);
 SDL_Surface *load_image(char *path);
-void display_refresh(synth_t *synth);
-void visualization(synth_t *synth);
-void set_screen_data(synth_t *synth, char *buf, int len);
-void set_files_list(synth_t *synth, char *buf, int len);
-void update_console(sound_t * sound);
-void display_action(char *fmt, ...);
-
+void         display_refresh(synth_t *synth);
+void         visualization(synth_t *synth);
+void         set_screen_data(synth_t *synth, char *buf, int len);
+void         set_files_list(synth_t *synth, char *buf, int len);
+void         update_console(sound_t *sound);
+void         display_action(char *fmt, ...);
 
 #endif
