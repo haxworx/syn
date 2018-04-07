@@ -7,12 +7,7 @@
 #include "video.h"
 #include "audio.h"
 
-sound_t *sounds[MAX_SOUND_COUNT] = { NULL };
-int16_t sound_buffer[SAMPLES * CHANNELS];
-
-// creates a new sound object
-
-sound_t *sound_create(void)
+sound_t *sound_create(synth_t *synth)
 {
     sound_t *sound = calloc(1, sizeof(sound_t));
     if (!sound)
@@ -23,7 +18,7 @@ sound_t *sound_create(void)
     sound->effects = SYNTH_DALEK;
     sound->SR = 44100;
     sound->silence = 0;
-    sound->pitch = global_pitch;
+    sound->pitch = synth->pitch;
     sound->duration = 0.1;
     sound->note = 0;
     sound->is_wavefile = false;
@@ -119,9 +114,9 @@ char *wav_files[MAX_WAV_FILES] = { NULL };
 uint16_t wav_files_count = 0;
 char *file_currently_in_use = NULL;
 
-void recording_start(void)
+void recording_start(synth_t *synth)
 {
-    recording_enabled = true;
+    synth->is_recording = true;
 
     char path[PATH_MAX] = { 0 };
 
@@ -175,12 +170,12 @@ void recording_start(void)
     current_action("recording to %s", filename);
 }
 
-void recording_stop(void)
+void recording_stop(synth_t *synth)
 {
     struct wav_file_hdr_t wav_file_hdr;
     memset(&wav_file_hdr, 0, sizeof(struct wav_file_hdr_t));
-    if (synth_continuous) {
-        synth_continuous = false;
+    if (synth->continuous) {
+        synth->continuous = false;
     }
     /* Generate a RIFF/WAVE header */
     wav_file_hdr.chunk_id[0] = 'R';
@@ -227,10 +222,10 @@ void recording_stop(void)
         fwrite(&output_buffer[i], sizeof(int16_t), 1, output_file);
     }
 
-    // close the RIFF/WAV file!     
+    // close the RIFF/WAV file!
     fclose(output_file);
 
-    recording_enabled = false;
+    synth->is_recording = false;
     output_buffer_len = 0;
     output_buffer_index = 0;
 
@@ -240,34 +235,35 @@ void recording_stop(void)
     current_action("finished recording!");
 }
 
-void bass_mid_treble_apply(int16_t * chunk)
+void bass_mid_treble_apply(synth_t *synth, int16_t * chunk)
 {
     if (*chunk == 0)
         return;
-    if (global_bass && *chunk < 80)
-        *chunk += global_bass;
+    if (synth->bass && *chunk < 80)
+        *chunk += synth->bass;
 
-    if (global_mid && *chunk > 80)
-        *chunk += global_mid;
+    if (synth->mid && *chunk > 80)
+        *chunk += synth->mid;
 
-    if (global_treble)
-        *chunk += global_treble;
+    if (synth->treble)
+        *chunk += synth->treble;
 }
 
-void waveform_default(void *sound, uint8_t * stream, int len)
+void waveform_default(void *userdata, uint8_t * stream, int len)
 {
-    sound_t *snd = (sound_t *) sound;
+    synth_t *synth = userdata;
+    sound_t *snd = synth->sound;
     int samples = len / 2;
 
-    SDL_memset(&sound_buffer, 0, len);
+    SDL_memset(&synth->buffer, 0, len);
 
     int16_t note = snd->note;
 
     int16_t average = 0;
 
-    sounds_count = 0;
+    synth->sounds_count = 0;
     if (snd->is_wavefile)
-        sounds_count = 0;
+        synth->sounds_count = 0;
 
     uint8_t *keystate = NULL;
     SDL_FlushEvents(SDL_KEYDOWN, SDL_MOUSEWHEEL);
@@ -275,20 +271,20 @@ void waveform_default(void *sound, uint8_t * stream, int len)
     keystate = (uint8_t *) SDL_GetKeyboardState(NULL);
     for (int i = 0; i < 128; i++) {
         if (keystate[SDL_GetScancodeFromKey(i)]) {
-            if (synth_continuous && i == SDLK_ESCAPE) {
-                synth_continuous = false;
+            if (synth->continuous && i == SDLK_ESCAPE) {
+                synth->continuous = false;
             }
             if (snd->is_wavefile) {
                 continue;
             }
-            sound_t *s = sound_create();
+            sound_t *s = sound_create(synth);
             s->key = i;
             s->note = keyboard_to_note(i);
-            sounds[sounds_count++] = s;
+            synth->sounds[synth->sounds_count++] = s;
 
         }
 
-        /*      
+        /*
            if (! keystate[SDL_GetScancodeFromKey(i)]) {
            SDL_FlushEvents(SDL_KEYDOWN, SDL_MOUSEWHEEL);
            }
@@ -304,17 +300,17 @@ void waveform_default(void *sound, uint8_t * stream, int len)
         SDL_Delay((1000 / FPS) - (SDL_GetTicks() - start_time));
     }
 
-    for (int i = 0; i < sounds_count && sounds[i] != NULL; i++) {
-        if (sounds[i]->is_wavefile) {
+    for (int i = 0; i < synth->sounds_count && synth->sounds[i] != NULL; i++) {
+        if (synth->sounds[i]->is_wavefile) {
             continue;
         }
-        average += sounds[i]->note;
-        free(sounds[i]);
-        sounds[i] = NULL;
+        average += synth->sounds[i]->note;
+        free(synth->sounds[i]);
+        synth->sounds[i] = NULL;
     }
 
-    if (sounds_count)
-        note = average / sounds_count;
+    if (synth->sounds_count)
+        note = average / synth->sounds_count;
 
     if (snd->pitch > SOUND_PITCH_MAX)   // ten times sanity
         snd->pitch = SOUND_PITCH_MAX;
@@ -328,53 +324,53 @@ void waveform_default(void *sound, uint8_t * stream, int len)
     for (int i = 0; i < samples; i += 2) {
         int16_t sound = 0;
 
-        sound = (int16_t) snd->A * sin(F * (double) counter);
+        sound = (int16_t) snd->A * sin(F * (double) synth->counter);
         if (sound == 0)
             goto no_effects;    /* audible clicks adios! */
         switch (snd->effects) {
         case SYNTH_DALEK:
-            effect_normal(&sound, counter);
+            effect_normal(&sound, synth->counter);
             break;
         case SYNTH_DRUM_N_BASS:
-            effect_drum_n_bass(&sound, counter);
+            effect_drum_n_bass(&sound, synth->counter);
             break;
         case SYNTH_TRIANGLE:
-            effect_triangle(&sound, counter);
+            effect_triangle(&sound, synth->counter);
             break;
         case SYNTH_BASSY:
-            effect_bassy(&sound, counter);
+            effect_bassy(&sound, synth->counter);
             break;
         case SYNTH_GIRLS_AND_BOYS:
-            effect_girls_n_boys(&sound, counter);
+            effect_girls_n_boys(&sound, synth->counter);
             break;
         case SYNTH_BOWSERS_CASTLE:
-            effect_bowser(&sound, counter);
+            effect_bowser(&sound, synth->counter);
             break;
         case SYNTH_VINYL_SCRATCH:
-            effect_vinyl_scratch(&sound, counter);
+            effect_vinyl_scratch(&sound, synth->counter);
             break;
         case SYNTH_LAZER_QUEST:
-            effect_lazer_quest(&sound, counter);
+            effect_lazer_quest(&sound, synth->counter);
             break;
         case SYNTH_CREEPY_FUZZ:
-            effect_creepy_fuzz(&sound, counter);
+            effect_creepy_fuzz(&sound, synth->counter);
             break;
         }
 
       no_effects:
-        bass_mid_treble_apply(&sound);
+        bass_mid_treble_apply(synth, &sound);
 
-        sound_buffer[i] = sound;
-        sound_buffer[i + 1] = sound;
-        ++counter;
+        synth->buffer[i] = sound;
+        synth->buffer[i + 1] = sound;
+        ++synth->counter;
     }
 
     int16_t *wav_pointer = NULL;
     if (snd->is_wavefile) {
         wav_pointer = snd->data + snd->wavefile_pos;
-        waveptr = sound_buffer;
+        waveptr = synth->buffer;
     } else {
-        waveptr = sound_buffer;
+        waveptr = synth->buffer;
     }
 
     SDL_memset(stream, 0, len);
@@ -400,11 +396,11 @@ void waveform_default(void *sound, uint8_t * stream, int len)
     // this should record wav files by themselves
     // this should record wav files being recorded themselves
 
-    if (recording_enabled) {
+    if (synth->is_recording) {
         for (int i = 0; i < len / 2; i++) {
             if (output_buffer_len >= MAX_OUTFILE_SIZE) {
                 snd->is_recording = false;
-                recording_stop();
+                recording_stop(synth);
                 return;
             }
             if (!snd->is_wavefile) {
@@ -420,18 +416,19 @@ void waveform_default(void *sound, uint8_t * stream, int len)
     }
 }
 
-void reset_defaults(sound_t * sound)
+void reset_defaults(synth_t *synth)
 {
-    global_pitch = sound->pitch = 440.0;
+    sound_t *sound = synth->sound;
+    synth->pitch = sound->pitch = 440.0;
     sound->volume = 80;         //128;
 //      sound_range_start = 0;
-    global_bass = global_mid = global_treble = 0;       // reset "dials"
+    synth->bass = synth->mid = synth->treble = 0;       // reset "dials"
 
 }
 
-sound_t *sound_system_up()
+sound_t *sound_system_up(synth_t *synth)
 {
-    sound_t *sound = sound_create();
+    sound_t *sound = sound_create(synth);
     SDL_AudioSpec wav_spec;
     SDL_memset(&wav_spec, 0, sizeof(wav_spec));
     wav_spec.freq = 44100;
@@ -441,7 +438,7 @@ sound_t *sound_system_up()
     wav_spec.samples = SAMPLES;
     wav_spec.padding = 0;
     wav_spec.size = 0;
-    wav_spec.userdata = sound;
+    wav_spec.userdata = synth;
     wav_spec.callback = waveform_default;
 
     sound->A = 0;
@@ -458,20 +455,21 @@ sound_t *sound_system_up()
     return sound;
 }
 
-void process_sound(sound_t * sound)
+void process_sound(synth_t *synth)
 {
-    counter = 0;
+    sound_t *sound = synth->sound;
+    synth->counter = 0;
     bool continuous = false;
     uint8_t *keystate = NULL;
-    sounds_count = 0;
+    synth->sounds_count = 0;
 
     bool bending_pitch = false;
     bool screen_will_update = true;
 
     uint16_t pitch_old = sound->pitch;
 
-    while (synth_continuous || continuous
-           || (counter < 44100 * sound->duration)) {
+    while (synth->continuous || continuous
+           || (synth->counter < 44100 * sound->duration)) {
         if ((1000 / FPS) > SDL_GetTicks() - start_time) {
             SDL_Delay((1000 / FPS) - (SDL_GetTicks() - start_time));
         }
@@ -482,25 +480,25 @@ void process_sound(sound_t * sound)
         keystate = (uint8_t *) SDL_GetKeyboardState(NULL);
         if (keystate[scancode]) {
             if (keystate[scancode] == SDLK_ESCAPE) {
-                synth_continuous = false;
+                synth->continuous = false;
             }
             continuous = true;
             uint32_t mousestate = SDL_GetMouseState(NULL, NULL);
             if (mousestate & SDL_BUTTON(SDL_BUTTON_LEFT)) {
                 sound->pitch += 0.005;
-                global_pitch = sound->pitch;
+                synth->pitch = sound->pitch;
                 if (!bending_pitch)
                     bending_pitch = true;
             } else if (mousestate & SDL_BUTTON(SDL_BUTTON_RIGHT)) {
                 sound->pitch -= 0.005;
-                global_pitch = sound->pitch;
+                synth->pitch = sound->pitch;
                 if (!bending_pitch)
                     bending_pitch = true;
             }
             if (bending_pitch) {
                 if (screen_will_update) {
                     current_action("pitch bending...");
-                    update_screen(sound);
+                    update_screen(synth);
                     screen_will_update = false;
                 }
             }
@@ -513,28 +511,30 @@ void process_sound(sound_t * sound)
     if (bending_pitch)
         current_action("end of the bend...");
 
-    update_screen(sound);
+    update_screen(synth);
     bending_pitch = false;
-    sound->pitch = global_pitch = pitch_old;
+    sound->pitch = synth->pitch = pitch_old;
 }
 
 
-void closedown(sound_t *sound)
+void synth_shutdown(synth_t *synth)
 {
+    sound_t * sound = synth->sound;
     free(sound);
 
     table_free();
 
-    if (recording_enabled) {
-        recording_stop();
+    if (synth->is_recording) {
+        recording_stop(synth);
     }
 
     SDL_CloseAudio();
     SDL_Quit();
 }
 
-sound_t *initialise(void)
+synth_t *synth_new(void)
 {
+    synth_t *self = calloc(1, sizeof(synth_t));
 
     init_sdl();
 
@@ -574,14 +574,15 @@ sound_t *initialise(void)
     table_insert("n", NULL, i++);
     table_insert("m", NULL, i++);
 
-    global_pitch = 440.00;
+    self->pitch = 440.00;
 
-    sound_t *sound = sound_system_up();
-
+    self->sound = sound_system_up(self);
     check_wav_files(working_directory);
-    update_screen(sound);
+    update_screen(self);
 
-    return sound;
+    *self->sounds = NULL;
+
+    return self;
 }
 
 void chomp(char *str)
@@ -675,10 +676,10 @@ void play_wave_file(sound_t * sound, const char *filename)
     current_action("we are playing %s", filename);
 }
 
-void play_music_file(sound_t * sound, const char *filename)
+void play_music_file(synth_t * synth, const char *filename)
 {
     char buf[8192] = { 0 };
-    sound_t *s = sound_create();
+    sound_t *s = sound_create(synth);
     SDL_AudioSpec wav_spec;
     SDL_memset(&wav_spec, 0, sizeof(wav_spec));
     wav_spec.freq = 44100;

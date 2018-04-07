@@ -11,10 +11,12 @@ else
 	OS := UNIX=1
 endif
 
-CFLAGS = -Wall -g -D$(OS) -D_FILE_OFFSET_BITS=64 $(shell pkg-config --cflags $(PKGS))
+CFLAGS = -g -ggdb -O0 -Wall -g -D$(OS) -D_FILE_OFFSET_BITS=64 $(shell pkg-config --cflags $(PKGS))
 SDL_LIBS = $(shell pkg-config --libs $(PKGS))
 
 OBJECTS = stdinc.o events.o audio.o video.o main.o
+
+default: $(TARGET)
 
 $(TARGET) : $(OBJECTS)
 	$(CC) $(OBJECTS) $(LIBS) $(SDL_LIBS) -o $@

@@ -161,8 +161,9 @@ void set_screen_data(sound_t * sound, char *buf, int len)
              sound->pitch, sound_range_start, sound->volume, waveform);
 }
 
-void update_screen(sound_t * sound)
+void update_screen(synth_t * synth)
 {
+    sound_t *sound = synth->sound;
     char *filename = "images/logo.png";
 
     if (logo)
@@ -176,7 +177,7 @@ void update_screen(sound_t * sound)
 
     SDL_Surface *logo_copy = NULL;
 
-    if (recording_enabled) {
+    if (synth->is_recording) {
         logo_copy =
             SDL_ConvertSurface(logo_recording, logo_recording->format, 0);
     } else {
@@ -223,7 +224,7 @@ void update_screen(sound_t * sound)
 
     SDL_Color *dataColor = &blueColor;
 
-    if (recording_enabled)
+    if (synth->is_recording)
         dataColor = &redColor;
 
     SDL_Surface *text =
@@ -330,14 +331,14 @@ void update_screen(sound_t * sound)
 
 uint8_t visual;
 
-void visualization(void)
+void visualization(synth_t *synth)
 {
     SDL_Rect final_size;
     int x, y;
     int16_t *ptr;
 
     // no visualisation if we record!
-    if (synth_continuous || recording_enabled) {
+    if (synth->continuous || synth->is_recording) {
         return;
     }
 
@@ -351,7 +352,7 @@ void visualization(void)
         SDL_memset(pixels, 0x00000000, WIDTH * HEIGHT * sizeof(*pixels));
 
         ptr = waveptr;
-	
+
 	for (x = 0; x < WIDTH; x++) {
 	    for (y = HEIGHT; y < HEIGHT; y ++) {
                 pixels[x + (y * WIDTH)] = 0xff00ffff;

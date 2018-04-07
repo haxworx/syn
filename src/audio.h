@@ -7,6 +7,10 @@
 #define SAMPLES 2048
 #define CHANNELS 2
 
+#define MAX_SOUND_COUNT 16
+#define SOUND_PITCH_MAX 20000
+#define SOUND_PITCH_MIN -4400.0
+
 typedef struct sound_t sound_t;
 struct sound_t {
     int key;
@@ -25,15 +29,23 @@ struct sound_t {
     void *data;
 };
 
-/* Position counter */
-int counter;
+typedef struct _synth_t {
+   int16_t bass, mid, treble;
+   int32_t pitch;
 
-int16_t global_bass, global_mid, global_treble;
-int32_t global_pitch;
+   bool wavefile_playing;
+   bool is_recording;
+   bool continuous;
 
-bool wavefile_playing;
-bool recording_enabled;
-bool synth_continuous;
+   int counter;
+
+   int16_t buffer[SAMPLES * CHANNELS];
+   sound_t *sounds[MAX_SOUND_COUNT];
+   uint8_t sounds_count;
+
+   sound_t *sound;
+} synth_t;
+
 
 uint32_t start_time;
 
@@ -54,20 +66,19 @@ struct wav_file_hdr_t {
     int subchunk2_size;
 };
 
-#define MAX_SOUND_COUNT 16
-uint8_t sounds_count;
 int16_t sound_range_start;
 
-#define SOUND_PITCH_MAX 20000
-#define SOUND_PITCH_MIN -4400.0
 
-sound_t *sound_create(void);
-sound_t *initialise(void);
-void closedown(sound_t * sound);
-void process_sound(sound_t * sound);
-void reset_defaults(sound_t * sound);
-void recording_start(void);
-void recording_stop(void);
+synth_t *synth_new(void);
+void synth_shutdown(synth_t *synth);
+
+sound_t *sound_create(synth_t *synth);
+
+void recording_start(synth_t *synth);
+void recording_stop(synth_t *synth);
+
+void reset_defaults(synth_t * synth);
+void process_sound(synth_t *synth);
 
 #define MAX_WAV_FILES 10
 extern char *wav_files[MAX_WAV_FILES];
@@ -78,7 +89,7 @@ int16_t *waveptr;
 
 void play_wave_file(sound_t * sound, const char *filename);
 void waveform_wavfile(void *userdata, uint8_t * stream, int len);
-void play_music_file(sound_t * sound, const char *filename);
+void play_music_file(synth_t *synth, const char *filename);
 
 #define SYNTH_DALEK 0x0
 #define SYNTH_TRIANGLE  0x1

@@ -2,7 +2,7 @@
 	(c) Copyright 2015, 2016. Al Poole <netstar@gmail.com>
 	All Rights Reserved.
 */
-    
+
 #include "stdinc.h"
 #include "audio.h"
 #include "video.h"
@@ -18,13 +18,13 @@ int main(int argc, char **argv)
 
     fflush(stdout);
 
-    sound_t *sound = initialise();
+    synth_t *synth = synth_new();
 
-    while (events_process(sound)) {
-        // after each pass of events...
-    }
+    do {
 
-    closedown(sound);
+    } while (Run(synth));
+
+    synth_shutdown(synth);
 
     return EXIT_SUCCESS;
 }

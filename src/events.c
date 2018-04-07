@@ -1,4 +1,4 @@
-/*
+/
 	(c) Copyright 2015, 2016. Al Poole <netstar@gmail.com>
 	All Rights Reserved.
 */
@@ -9,9 +9,11 @@
 #include "stdinc.h"
 
 
-int events_process(sound_t *sound)
+int Run(synth_t *synth)
 {
-	SDL_Event event;
+    SDL_Event event;
+
+    sound_t *sound = synth->sound;
 
     if (sound->is_wavefile) {
         if (sound->wavefile_pos < sound->wavefile_len) {
@@ -24,7 +26,7 @@ int events_process(sound_t *sound)
         }
    }
 
-    if (recording_enabled) {
+    if (synth->is_recording) {
         SDL_Delay(2);
         sound->is_recording = true;
     }
@@ -37,32 +39,32 @@ int events_process(sound_t *sound)
                     case 6:
                         if (sound->pitch > SOUND_PITCH_MIN) {
                             sound->pitch -= 100;
-                            global_pitch = sound->pitch;
+                            synth->pitch = sound->pitch;
                         }
                         break;
                     case 7:
                         if (sound->pitch < SOUND_PITCH_MAX) {
                             sound->pitch += 100;
-                            global_pitch = sound->pitch;
+                            synth->pitch = sound->pitch;
                         }
                         break;
                     case 3:
-                        global_bass += 1000;
+                        synth->bass += 1000;
                         break;
                     case 0:
-                        global_bass -= 1000;
+                        synth->bass -= 1000;
                         break;
                     case 2:
-                        global_mid += 1000;
+                        synth->mid += 1000;
                         break;
                     case 1:
-                        global_mid -= 1000;
+                        synth->mid -= 1000;
                         break;
                     case 5:
-                        global_treble += 1000;
+                        synth->treble += 1000;
                         break;
                     case 4:
-                        global_treble -= 1000;
+                        synth->treble -= 1000;
                         break;
                     }
                     update_console(sound);
@@ -72,10 +74,10 @@ int events_process(sound_t *sound)
             case SDL_DROPFILE:{
                     char *file = event.drop.file;
                     current_action("Playing music file %s", file);
-                    update_screen(sound);
-                    play_music_file(sound, file);
+                    update_screen(synth);
+                    play_music_file(synth, file);
                     free(sound);
-                    sound = initialise();
+                    sound = sound_create(synth);
                     break;
                 }
 
@@ -90,13 +92,13 @@ int events_process(sound_t *sound)
                 switch (sound->key) {
                     /*
                        case SDLK_UNDECIDED:
-                       global_bass += BLAH;
+                       synth->bass += BLAH;
                        break;
                        case SDLK_UNDECIDED:
-                       global_mid += BLAH;
+                       synth->mid += BLAH;
                        break;
                        case SDLK_UNDECIDED:
-                       global_treble += BLAH;
+                       synth->treble += BLAH;
                        break;
                      */
                 case SDLK_F1:
@@ -157,27 +159,27 @@ int events_process(sound_t *sound)
                     break;
 
                 case SDLK_HOME:
-                    if (recording_enabled) {
+                    if (synth->is_recording) {
                         current_action("still recording!");
                         break;
                     }
-                    recording_start();
+                    recording_start(synth);
                     sound->is_recording = true;
-                    update_screen(sound);
+                    update_screen(synth);
                     break;
 
                 case SDLK_END:
                     if (sound->is_recording) {
-                        recording_stop();
+                        recording_stop(synth);
                         sound->is_recording = false;
-                        update_screen(sound);
-                        synth_continuous = false;
+                        update_screen(synth);
+                        synth->continuous = false;
                         current_action("stopped recording!");
                     }
                     break;
 
                 case SDLK_DELETE:
-                    if (!recording_enabled) {
+                    if (!synth->is_recording) {
                         bool del = delete_wav_file(working_directory);
                         if (del) {
                             current_action("deleted wav file!");
@@ -188,33 +190,33 @@ int events_process(sound_t *sound)
                     } else {
                         current_action("still recording!");
                     }
-                    update_screen(sound);
+                    update_screen(synth);
                     break;
 
                     /* this'll be bogus, who cares! */
                 case SDLK_SPACE:
-                    if (!synth_continuous) {
+                    if (!synth->continuous) {
                         current_action("continuous waveform!");
-                        synth_continuous = true;
+                        synth->continuous = true;
                     }
                     break;
 
                 case SDLK_BACKSPACE:
-                    reset_defaults(sound);
+                    reset_defaults(synth);
                     current_action("audio defaults reset!");
                     break;
 
                 case SDLK_UP:
                     if (sound->pitch < SOUND_PITCH_MAX) {
                         sound->pitch += 1;
-                        global_pitch = sound->pitch;
+                        synth->pitch = sound->pitch;
                     }
                     break;
 
                 case SDLK_DOWN:
                     if (sound->pitch > SOUND_PITCH_MIN) {
                         sound->pitch -= 1;
-                        global_pitch = sound->pitch;
+                        synth->pitch = sound->pitch;
                     }
                     break;
 
@@ -255,16 +257,16 @@ int events_process(sound_t *sound)
 
                 default:
                     sound->A = 30000;
-                    if (!recording_enabled) {
+                    if (!synth->is_recording) {
                         current_action
                             ("Visit http://haxlab.org for more!");
                     }
-                    process_sound(sound);
+                    process_sound(synth);
                     sound->A = 0;
                     break;
                 }
                 check_wav_files(working_directory);
-                update_screen(sound);
+                update_screen(synth);
                 break;
 
             case SDL_MOUSEWHEEL:
@@ -274,7 +276,7 @@ int events_process(sound_t *sound)
                 } else if (sound->volume > 0)
                     sound->volume -= 1;
 
-                update_screen(sound);
+                update_screen(synth);
                 break;
 
             case SDL_QUIT:
@@ -284,16 +286,16 @@ int events_process(sound_t *sound)
             case SDL_WINDOWEVENT:
                 switch (event.window.event) {
                 case SDL_WINDOWEVENT_EXPOSED:
-                    update_screen(sound);
+                    update_screen(synth);
                     break;
 
                 case SDL_WINDOWEVENT_SIZE_CHANGED:
-                    update_screen(sound);
+                    update_screen(synth);
                     break;
                 }
 
             }
-        } 
+        }
 
     return true;
 }
