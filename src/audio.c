@@ -172,13 +172,13 @@ recording_start(synth_t *synth)
           }
      }
 
-   if (synth->recording_path_current)
+   if (synth->recording_file)
      {
-        free(synth->recording_path_current);
-        synth->recording_path_current = NULL;
+        free(synth->recording_file);
+        synth->recording_file = NULL;
      }
 
-   synth->recording_path_current = strdup(filename);
+   synth->recording_file = strdup(filename);
 
    snprintf(path, sizeof(path), "%s%c%s", synth->working_directory, SLASH,
             filename);
@@ -253,8 +253,8 @@ recording_stop(synth_t *synth)
    synth->output_buffer_len = 0;
    synth->output_buffer_index = 0;
 
-   free(synth->recording_path_current);
-   synth->recording_path_current = NULL;
+   free(synth->recording_file);
+   synth->recording_file = NULL;
 
    display_action("finished recording!");
 }
@@ -671,7 +671,7 @@ synth_new(void)
 
    wave_files_count(self);
 
-   self->recording_path_current = NULL;
+   self->recording_file = NULL;
 
    *self->output_buffer = 0;
 
@@ -697,8 +697,8 @@ wave_file_play(synth_t *synth, const char *filename)
    size_t res, len;
    sound_t *sound = synth->sound;
 
-   if (synth->recording_path_current != NULL
-       && !strcmp(filename, synth->recording_path_current))
+   if (synth->recording_file != NULL
+       && !strcmp(filename, synth->recording_file))
      {
         display_action
           ("you cannot play a file that is currently recording");

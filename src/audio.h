@@ -45,7 +45,7 @@ typedef struct _synth_t
    bool          continuous;
    int16_t       sound_range_start;
 
-   char         *recording_path_current;
+   char         *recording_file;
 
    int           counter;
 
