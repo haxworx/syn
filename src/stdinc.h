@@ -14,6 +14,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include "audio.h"
 
 #define VERSION "[v0.6.0.0]  "
 
@@ -53,13 +54,5 @@ bool table_delete(char *key);
 node_t *table_search(char *key);
 void table_free(void);
 void table_dump(void);
-int keyboard_to_note(int k);
-
-bool delete_wav_file(const char *directory);
-bool is_wav_file(const char *path);
-void check_wav_files(const char *directory);
-
-char working_directory[PATH_MAX];
-void set_working_directory(void);
 
 #endif

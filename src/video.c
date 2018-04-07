@@ -93,14 +93,14 @@ void update_console(sound_t * sound)
 #endif
 }
 
-void set_files_list(char *buf, int len)
+void set_files_list(synth_t *synth, char *buf, int len)
 {
     int recording_start = -1;
     int recording_end = 0;
     bool first_file = true;
 
     for (int i = 0; i < MAX_WAV_FILES; i++) {
-        if (wav_files[i]) {
+        if (synth->wav_files[i]) {
             if (first_file) {
                 recording_start = i;
                 first_file = false;
@@ -126,8 +126,9 @@ void set_files_list(char *buf, int len)
     }
 }
 
-void set_screen_data(sound_t * sound, char *buf, int len)
+void set_screen_data(synth_t * synth, char *buf, int len)
 {
+    sound_t *sound = synth->sound;
     char *waveform = NULL;
     switch (sound->effects) {
     case SYNTH_DALEK:
@@ -158,7 +159,7 @@ void set_screen_data(sound_t * sound, char *buf, int len)
 
     snprintf(buf, len,
              "Pitch: %0.2f Hz  Tone: %d  Volume: %d  Instrument: \"%s\"",
-             sound->pitch, sound_range_start, sound->volume, waveform);
+             sound->pitch, synth->sound_range_start, sound->volume, waveform);
 }
 
 void update_screen(synth_t * synth)
@@ -220,7 +221,7 @@ void update_screen(synth_t * synth)
 
     char screen_data[8192] = { 0 };
 
-    set_screen_data(sound, screen_data, sizeof(screen_data));
+    set_screen_data(synth, screen_data, sizeof(screen_data));
 
     SDL_Color *dataColor = &blueColor;
 
@@ -240,9 +241,9 @@ void update_screen(synth_t * synth)
 
     //TTF_SetFontStyle(font, TTF_STYLE_BOLD);
 
-    check_wav_files(working_directory); // expensive???
+    check_wav_files(synth); // expensive???
     char files_list[8192] = { 0 };
-    set_files_list(files_list, sizeof(files_list));
+    set_files_list(synth, files_list, sizeof(files_list));
 
     SDL_Surface *files_list_text =
         TTF_RenderText_Blended(font, files_list, whiteColor);
@@ -342,7 +343,7 @@ void visualization(synth_t *synth)
         return;
     }
 
-    if (waveptr == NULL)
+    if (synth->waveptr == NULL)
         return;
 
     visual = VISUAL_WAVE;
@@ -351,7 +352,7 @@ void visualization(synth_t *synth)
     case VISUAL_WAVE:
         SDL_memset(pixels, 0x00000000, WIDTH * HEIGHT * sizeof(*pixels));
 
-        ptr = waveptr;
+        ptr = synth->waveptr;
 
 	for (x = 0; x < WIDTH; x++) {
 	    for (y = HEIGHT; y < HEIGHT; y ++) {
@@ -365,7 +366,7 @@ void visualization(synth_t *synth)
         break;
 
     case VISUAL_ICON:
-        ptr = waveptr;
+        ptr = synth->waveptr;
         uint16_t num = (uint16_t) (*ptr >> 3);
         printf("num is %d\n", num);
         if (num > 768) {

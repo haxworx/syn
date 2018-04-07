@@ -20,6 +20,8 @@ int main(int argc, char **argv)
 
     synth_t *synth = synth_new();
 
+    current_action("Visit http://haxlab.org for more!");
+
     do {
 
     } while (Run(synth));

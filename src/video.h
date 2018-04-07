@@ -28,8 +28,8 @@ void init_sdl(void);
 SDL_Surface *load_image(char *path);
 void update_screen(synth_t *synth);
 void visualization(synth_t *synth);
-void set_screen_data(sound_t * sound, char *buf, int len);
-void set_files_list(char *buf, int len);
+void set_screen_data(synth_t *synth, char *buf, int len);
+void set_files_list(synth_t *synth, char *buf, int len);
 void update_console(sound_t * sound);
 void current_action(char *fmt, ...);
 

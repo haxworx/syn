@@ -87,7 +87,7 @@ int Run(synth_t *synth)
             case SDL_KEYDOWN:
 
                 sound->key = event.key.keysym.sym;
-                sound->note = keyboard_to_note(sound->key);
+                sound->note = keyboard_to_note(synth, sound->key);
 
                 switch (sound->key) {
                     /*
@@ -103,47 +103,47 @@ int Run(synth_t *synth)
                      */
                 case SDLK_F1:
                     sound->effects = SYNTH_DALEK;
-                    sound_range_start = -35;
+                    synth->sound_range_start = -35;
                     break;
                 case SDLK_F2:
                     sound->effects = SYNTH_DRUM_N_BASS;
-                    sound_range_start = -30;
+                    synth->sound_range_start = -30;
                     break;
 
                 case SDLK_F3:
                     sound->effects = SYNTH_TRIANGLE;
-                    sound_range_start = -22;
+                    synth->sound_range_start = -22;
                     break;
 
                 case SDLK_F4:
                     sound->effects = SYNTH_BASSY;
-                    sound_range_start = 0;
+                    synth->sound_range_start = 0;
                     break;
 
                 case SDLK_F5:
                     sound->effects = SYNTH_GIRLS_AND_BOYS;
-                    sound_range_start = -15;
+                    synth->sound_range_start = -15;
                     break;
                 case SDLK_F6:
                     sound->effects = SYNTH_VINYL_SCRATCH;
-                    sound_range_start = -82;
+                    synth->sound_range_start = -82;
                     break;
 
                 case SDLK_F7:
                     sound->effects = SYNTH_LAZER_QUEST;
-                    sound_range_start = 0;
+                    synth->sound_range_start = 0;
                     break;
                 case SDLK_F8:
                     sound->effects = SYNTH_CREEPY_FUZZ;
-                    sound_range_start = -33;
+                    synth->sound_range_start = -33;
                     break;
 
                 case SDLK_F9:
-                    sound_range_start--;
+                    synth->sound_range_start--;
                     break;
 
                 case SDLK_F10:
-                    sound_range_start++;
+                    synth->sound_range_start++;
                     break;
 
                 case SDLK_F11:
@@ -180,7 +180,7 @@ int Run(synth_t *synth)
 
                 case SDLK_DELETE:
                     if (!synth->is_recording) {
-                        bool del = delete_wav_file(working_directory);
+                        bool del = delete_wav_file(synth);
                         if (del) {
                             current_action("deleted wav file!");
                         } else {
@@ -221,34 +221,34 @@ int Run(synth_t *synth)
                     break;
 
                 case SDLK_0:
-                    play_wave_file(sound, "00.wav");
+                    play_wave_file(synth, "00.wav");
                     break;
                 case SDLK_1:
-                    play_wave_file(sound, "01.wav");
+                    play_wave_file(synth, "01.wav");
                     break;
                 case SDLK_2:
-                    play_wave_file(sound, "02.wav");
+                    play_wave_file(synth, "02.wav");
                     break;
                 case SDLK_3:
-                    play_wave_file(sound, "03.wav");
+                    play_wave_file(synth, "03.wav");
                     break;
                 case SDLK_4:
-                    play_wave_file(sound, "04.wav");
+                    play_wave_file(synth, "04.wav");
                     break;
                 case SDLK_5:
-                    play_wave_file(sound, "05.wav");
+                    play_wave_file(synth, "05.wav");
                     break;
                 case SDLK_6:
-                    play_wave_file(sound, "06.wav");
+                    play_wave_file(synth, "06.wav");
                     break;
                 case SDLK_7:
-                    play_wave_file(sound, "07.wav");
+                    play_wave_file(synth, "07.wav");
                     break;
                 case SDLK_8:
-                    play_wave_file(sound, "08.wav");
+                    play_wave_file(synth, "08.wav");
                     break;
                 case SDLK_9:
-                    play_wave_file(sound, "09.wav");
+                    play_wave_file(synth, "09.wav");
                     break;
 
                 case SDLK_ESCAPE:
@@ -265,7 +265,7 @@ int Run(synth_t *synth)
                     sound->A = 0;
                     break;
                 }
-                check_wav_files(working_directory);
+                check_wav_files(synth);
                 update_screen(synth);
                 break;
 

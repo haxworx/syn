@@ -28,10 +28,25 @@ sound_t *sound_create(synth_t *synth)
     return sound;
 }
 
-int effect_count = 0;
+/* keyboard to sound */
+int keyboard_to_note(synth_t *synth, int k)
+{
+    int note = k - ' ' - 24;
+    char key[1024] = { 0 };
+    snprintf(key, sizeof(key), "%c", k);
+
+    node_t *found = table_search(key);
+    if (found) {
+        note = found->ival + synth->sound_range_start;
+        return note;
+    }
+
+    return note;
+}
 
 void effect_normal(int16_t * sound, int count)
 {
+    int effect_count = 0;
     while (*sound > 0 && effect_count < 1264) {
         *sound -= (count * 2);
         ++effect_count;
@@ -41,11 +56,11 @@ void effect_normal(int16_t * sound, int count)
 
 void effect_triangle(int16_t * sound, int count)
 {
+    int effect_count = 0;
     while (*sound > 0 && effect_count < 64) {
         *sound += (count * 3);
         ++effect_count;
     }
-    effect_count = 0;
 }
 
 void effect_girls_n_boys(int16_t * sound, int count)
@@ -98,22 +113,6 @@ void effect_lazer_quest(int16_t * sound, int count)
     *sound *= tan(4096 * 1024 * atan(count * 4));
 }
 
-/* this is for recording the audio! */
-
-// 40MB ???
-#define MAX_OUTFILE_SIZE 41943040
-FILE *output_file = NULL;
-int16_t output_buffer[MAX_OUTFILE_SIZE] = { 0 };
-
-int output_buffer_index = 0;
-int output_buffer_len = 0;
-
-
-char *wav_files[MAX_WAV_FILES] = { NULL };
-
-uint16_t wav_files_count = 0;
-char *file_currently_in_use = NULL;
-
 void recording_start(synth_t *synth)
 {
     synth->is_recording = true;
@@ -122,7 +121,7 @@ void recording_start(synth_t *synth)
 
     DIR *d = NULL;
     struct dirent *dirent = NULL;
-    d = opendir(working_directory);
+    d = opendir(synth->working_directory);
     if (!d)
         fail("opendir: %s\n", strerror(errno));
 
@@ -131,7 +130,7 @@ void recording_start(synth_t *synth)
             continue;
         }
         struct stat fs;
-        snprintf(path, PATH_MAX, "%s%c%s", working_directory, SLASH,
+        snprintf(path, PATH_MAX, "%s%c%s", synth->working_directory, SLASH,
                  dirent->d_name);
 
         stat(path, &fs);
@@ -154,17 +153,17 @@ void recording_start(synth_t *synth)
         }
     }
 
-    if (file_currently_in_use) {
-        free(file_currently_in_use);
-        file_currently_in_use = NULL;
+    if (synth->recording_path_current) {
+        free(synth->recording_path_current);
+        synth->recording_path_current = NULL;
     }
 
-    file_currently_in_use = strdup(filename);
+    synth->recording_path_current = strdup(filename);
 
-    snprintf(path, sizeof(path), "%s%c%s", working_directory, SLASH,
+    snprintf(path, sizeof(path), "%s%c%s", synth->working_directory, SLASH,
              filename);
-    output_file = fopen(path, "wb");
-    if (!output_file)
+    synth->output_file = fopen(path, "wb");
+    if (!synth->output_file)
         fail("fopen: %s\n", strerror(errno));
 
     current_action("recording to %s", filename);
@@ -184,7 +183,7 @@ void recording_stop(synth_t *synth)
     wav_file_hdr.chunk_id[3] = 'F';
 
     wav_file_hdr.chunk_size =
-        sizeof(struct wav_file_hdr_t) + output_buffer_len - 8;
+        sizeof(struct wav_file_hdr_t) + synth->output_buffer_len - 8;
 
     wav_file_hdr.format[0] = 'W';
     wav_file_hdr.format[1] = 'A';
@@ -211,26 +210,26 @@ void recording_stop(synth_t *synth)
     wav_file_hdr.subchunk2_id[2] = 't';
     wav_file_hdr.subchunk2_id[3] = 'a';
 
-    wav_file_hdr.subchunk2_size = output_buffer_len;
+    wav_file_hdr.subchunk2_size = synth->output_buffer_len;
 
     // write the wav_h to file!
     // write header to file
-    fwrite(&wav_file_hdr, sizeof(struct wav_file_hdr_t), 1, output_file);
+    fwrite(&wav_file_hdr, sizeof(struct wav_file_hdr_t), 1, synth->output_file);
 
     // write the audio data!
-    for (int i = 0; i < output_buffer_len / 2; i++) {
-        fwrite(&output_buffer[i], sizeof(int16_t), 1, output_file);
+    for (int i = 0; i < synth->output_buffer_len / 2; i++) {
+        fwrite(&synth->output_buffer[i], sizeof(int16_t), 1, synth->output_file);
     }
 
     // close the RIFF/WAV file!
-    fclose(output_file);
+    fclose(synth->output_file);
 
     synth->is_recording = false;
-    output_buffer_len = 0;
-    output_buffer_index = 0;
+    synth->output_buffer_len = 0;
+    synth->output_buffer_index = 0;
 
-    free(file_currently_in_use);
-    file_currently_in_use = NULL;
+    free(synth->recording_path_current);
+    synth->recording_path_current = NULL;
 
     current_action("finished recording!");
 }
@@ -279,7 +278,7 @@ void waveform_default(void *userdata, uint8_t * stream, int len)
             }
             sound_t *s = sound_create(synth);
             s->key = i;
-            s->note = keyboard_to_note(i);
+            s->note = keyboard_to_note(synth, i);
             synth->sounds[synth->sounds_count++] = s;
 
         }
@@ -368,15 +367,15 @@ void waveform_default(void *userdata, uint8_t * stream, int len)
     int16_t *wav_pointer = NULL;
     if (snd->is_wavefile) {
         wav_pointer = snd->data + snd->wavefile_pos;
-        waveptr = synth->buffer;
+        synth->waveptr = synth->buffer;
     } else {
-        waveptr = synth->buffer;
+        synth->waveptr = synth->buffer;
     }
 
     SDL_memset(stream, 0, len);
 
     if (!snd->is_wavefile) {
-        SDL_MixAudio(stream, (uint8_t *) waveptr, len, snd->volume);
+        SDL_MixAudio(stream, (uint8_t *) synth->waveptr, len, snd->volume);
     } else {
         // problematic
         if (snd->wavefile_pos >= snd->wavefile_len) {
@@ -398,20 +397,20 @@ void waveform_default(void *userdata, uint8_t * stream, int len)
 
     if (synth->is_recording) {
         for (int i = 0; i < len / 2; i++) {
-            if (output_buffer_len >= MAX_OUTFILE_SIZE) {
+            if (synth->output_buffer_len >= MAX_OUTFILE_SIZE) {
                 snd->is_recording = false;
                 recording_stop(synth);
                 return;
             }
             if (!snd->is_wavefile) {
-                output_buffer[output_buffer_index++] =
-                    (int16_t) * (waveptr + i);
+                synth->output_buffer[synth->output_buffer_index++] =
+                    (int16_t) * (synth->waveptr + i);
             } else {
-                int16_t mixed = (int16_t) * (waveptr + i);
+                int16_t mixed = (int16_t) * (synth->waveptr + i);
                 mixed += (int16_t) * (wav_pointer + i);
-                output_buffer[output_buffer_index++] = mixed;
+                synth->output_buffer[synth->output_buffer_index++] = mixed;
             }
-            output_buffer_len += sizeof(int16_t);
+            synth->output_buffer_len += sizeof(int16_t);
         }
     }
 }
@@ -447,7 +446,7 @@ sound_t *sound_system_up(synth_t *synth)
         fail("SDL_OpenAudio: %s\n", SDL_GetError());
 
     // range start with default synth range too!
-    sound_range_start = -35;
+    synth->sound_range_start = -35;
 
     // start it up! 
     SDL_PauseAudio(0);
@@ -532,15 +531,43 @@ void synth_shutdown(synth_t *synth)
     SDL_Quit();
 }
 
+#define SYNTH_DATA_DIR_NAME "Recordings"
+
+static void
+_work_directory_set(synth_t *synth)
+{
+    char *homedrive = getenv("HOMEDRIVE");
+    if (homedrive) {
+        char *homepath = getenv("HOMEPATH");
+        if (!homepath)
+            fail("getenv: HOME");
+
+        snprintf(synth->working_directory, sizeof(synth->working_directory), "%s%s\\%s",
+                 homedrive, homepath, SYNTH_DATA_DIR_NAME);
+    } else {
+        // CWD and ! Windows
+        snprintf(synth->working_directory, sizeof(synth->working_directory), "%c%c%s", '.', SLASH, SYNTH_DATA_DIR_NAME);
+    }
+
+    struct stat fstats;
+    if (stat(synth->working_directory, &fstats) < 0)
+#ifdef WINDOWS
+        mkdir(synth->working_directory);
+#else
+        mkdir(synth->working_directory, 0777);
+#endif
+
+}
+
 synth_t *synth_new(void)
 {
     synth_t *self = calloc(1, sizeof(synth_t));
 
     init_sdl();
 
-    set_working_directory();
+    _work_directory_set(self);
 
-    int16_t i = sound_range_start;
+    int16_t i = self->sound_range_start;
     /* US/UK keyboard -> sound continuity */
 
     table_insert("q", NULL, i++);
@@ -576,10 +603,17 @@ synth_t *synth_new(void)
 
     self->pitch = 440.00;
 
-    self->sound = sound_system_up(self);
-    check_wav_files(working_directory);
-    update_screen(self);
+    check_wav_files(self);
 
+    self->recording_path_current = NULL;
+    
+    *self->output_buffer = 0;
+
+    for (i = 0; i < MAX_WAV_FILES; i++) {
+        self->wav_files[i] = NULL;
+    }
+    
+    self->sound = sound_system_up(self);
     *self->sounds = NULL;
 
     return self;
@@ -614,11 +648,13 @@ void waveform_wavfile(void *userdata, uint8_t * stream, int len)
 }
 
 // FIXME: playing the same file as is recording...
-//
-void play_wave_file(sound_t * sound, const char *filename)
+
+void play_wave_file(synth_t *synth, const char *filename)
 {
-    if (file_currently_in_use != NULL
-        && !strcmp(filename, file_currently_in_use)) {
+    sound_t * sound = synth->sound;
+
+    if (synth->recording_path_current != NULL
+        && !strcmp(filename, synth->recording_path_current)) {
         current_action
             ("you cannot play a file that is currently recording");
         return;
@@ -629,8 +665,9 @@ void play_wave_file(sound_t * sound, const char *filename)
     struct wav_file_hdr_t wav_file_hdr;
     char path[PATH_MAX] = { 0 };
 
-    snprintf(path, sizeof(path), "%s%c%s", working_directory, SLASH,
+    snprintf(path, sizeof(path), "%s%c%s", synth->working_directory, SLASH,
              filename);
+     printf("path: %s\n", path);
     FILE *fp = fopen(path, "rb");
     if (!fp) {
         current_action("that audio file doesn't seem to exist!");
@@ -639,8 +676,10 @@ void play_wave_file(sound_t * sound, const char *filename)
     // read file wave header!
     size_t res =
         fread(&wav_file_hdr, sizeof(struct wav_file_hdr_t), 1, fp);
-    if (!res)
-        fail("fread");
+    if (!res) {
+        current_action("not playing potentially corrupt file??");
+        return;
+    }
 
     int16_t *audio_buffer =
         calloc(1, sizeof(int16_t) * wav_file_hdr.subchunk2_size);
@@ -755,4 +794,93 @@ void play_music_file(synth_t * synth, const char *filename)
     free(s);
     SDL_CloseAudio();
 }
+
+bool is_wav_file(const char *path)
+{
+    char *dot = strrchr(path, '.');
+    if (!dot) {
+        return false;
+    }
+
+    dot++;
+
+    if (!strcmp(dot, "wav")) {
+        return true;
+    }
+
+    return false;
+}
+
+/* Basically checks how many recordings are on disk */
+/* 00.wav to 09.wav ... crude :) */
+
+void check_wav_files(synth_t *synth)
+{
+    DIR *d = NULL;
+    struct dirent *dirent = NULL;
+    const char *directory = synth->working_directory;
+
+    d = opendir(directory);
+    if (!d)
+        fail("opendir: %s\n", strerror(errno));
+
+    synth->wav_files_count = 0;
+
+    while ((dirent = readdir(d)) != NULL) {
+        if (!strncmp(dirent->d_name, ".", 1)) {
+            continue;
+        }
+        char path[PATH_MAX] = { 0 };
+        struct stat fs;
+        snprintf(path, PATH_MAX, "%s%c%s", directory, SLASH,
+                 dirent->d_name);
+
+        stat(path, &fs);
+
+        if (S_ISDIR(fs.st_mode)) {
+            continue;
+        }
+
+        if (is_wav_file(path)) {
+            if (synth->wav_files_count < MAX_WAV_FILES) {
+                if (synth->wav_files[synth->wav_files_count] != NULL) {
+                    //continue;
+                }
+                synth->wav_files[synth->wav_files_count++] = strdup(dirent->d_name);
+            }
+        }
+    }
+
+    closedir(d);
+}
+
+/* These are all actions on files */
+bool delete_wav_file(synth_t *synth)
+{
+    int latest_wav_file = 0;
+    bool found_file = false;
+    const char *directory = synth->working_directory;
+
+    for (int i = 0; i < MAX_WAV_FILES; i++) {
+        if (synth->wav_files[i] != NULL) {
+            latest_wav_file = i;
+            found_file = true;
+        }
+    }
+
+    if (found_file) {
+        char path[PATH_MAX] = { 0 };
+        snprintf(path, sizeof(path), "%s%c%s", directory,
+                 SLASH, synth->wav_files[latest_wav_file]);
+        unlink(path);
+        current_action("deleted wav files %s", synth->wav_files[latest_wav_file]);
+        table_delete(synth->wav_files[latest_wav_file]);
+        free(synth->wav_files[latest_wav_file]);
+        synth->wav_files[latest_wav_file] = NULL;
+        return true;
+    }
+
+    return false;
+}
+
 

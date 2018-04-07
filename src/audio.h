@@ -1,6 +1,7 @@
 #ifndef __AUDIO_H__
 #define __AUDIO_H__
 #include "stdinc.h"
+#include "limits.h"
 
 #include <SDL_audio.h>
 
@@ -10,6 +11,9 @@
 #define MAX_SOUND_COUNT 16
 #define SOUND_PITCH_MAX 20000
 #define SOUND_PITCH_MIN -4400.0
+
+#define MAX_OUTFILE_SIZE 41943040
+#define MAX_WAV_FILES 10
 
 typedef struct sound_t sound_t;
 struct sound_t {
@@ -30,18 +34,34 @@ struct sound_t {
 };
 
 typedef struct _synth_t {
+   char working_directory[PATH_MAX];
+
    int16_t bass, mid, treble;
    int32_t pitch;
 
    bool wavefile_playing;
    bool is_recording;
    bool continuous;
+   int16_t sound_range_start;
+
+   char *recording_path_current;
 
    int counter;
 
    int16_t buffer[SAMPLES * CHANNELS];
    sound_t *sounds[MAX_SOUND_COUNT];
    uint8_t sounds_count;
+
+   FILE *output_file;
+   int16_t output_buffer[MAX_OUTFILE_SIZE];
+   int output_buffer_index;
+   int output_buffer_len;
+
+   char *wav_files[MAX_WAV_FILES];
+   uint16_t wav_files_count;
+
+   SDL_AudioSpec wav_spec;
+   int16_t *waveptr;
 
    sound_t *sound;
 } synth_t;
@@ -66,7 +86,6 @@ struct wav_file_hdr_t {
     int subchunk2_size;
 };
 
-int16_t sound_range_start;
 
 
 synth_t *synth_new(void);
@@ -80,16 +99,15 @@ void recording_stop(synth_t *synth);
 void reset_defaults(synth_t * synth);
 void process_sound(synth_t *synth);
 
-#define MAX_WAV_FILES 10
-extern char *wav_files[MAX_WAV_FILES];
-
-SDL_AudioSpec wav_spec;
-uint16_t wav_files_count;
-int16_t *waveptr;
-
-void play_wave_file(sound_t * sound, const char *filename);
+void play_wave_file(synth_t *synth, const char *filename);
 void waveform_wavfile(void *userdata, uint8_t * stream, int len);
 void play_music_file(synth_t *synth, const char *filename);
+int keyboard_to_note(synth_t *synth, int k);
+
+bool delete_wav_file(synth_t *synth);
+bool is_wav_file(const char *path);
+void check_wav_files(synth_t *synth);
+
 
 #define SYNTH_DALEK 0x0
 #define SYNTH_TRIANGLE  0x1
