@@ -98,7 +98,6 @@ void     recording_stop(synth_t *synth);
 void     reset_defaults(synth_t *synth);
 void     process_sound(synth_t *synth);
 
-void     waveform_wavfile(void *userdata, uint8_t *stream, int len);
 void     play_music_file(synth_t *synth, const char *filename);
 int      keyboard_to_note(synth_t *synth, int k);
 

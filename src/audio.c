@@ -112,7 +112,7 @@ effect_bowser(int16_t *sound, int count)
 void
 effect_vinyl_scratch(int16_t *sound, int count)
 {
-   while (sound < 0)
+   while (*sound < 0)
      *sound += 0xf;
 
    while (*sound > 0)
@@ -683,22 +683,6 @@ synth_new(void)
    *self->sounds = NULL;
 
    return self;
-}
-
-/* two functions to play WAV files from disk */
-
-uint32_t wavefile_pos = 0;
-
-void
-waveform_wavfile(void *userdata, uint8_t *stream, int len)
-{
-   int8_t *waveptr = NULL;
-
-   waveptr = (int8_t *)userdata + wavefile_pos;
-
-   SDL_memset(stream, 0, len);
-   SDL_MixAudio(stream, (uint8_t *)waveptr, len, SDL_MIX_MAXVOLUME);
-   wavefile_pos += len;
 }
 
 // FIXME: playing the same file as is recording...
