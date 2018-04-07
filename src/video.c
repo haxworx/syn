@@ -126,7 +126,7 @@ void set_files_list(synth_t *synth, char *buf, int len)
     }
 }
 
-void set_screen_data(synth_t * synth, char *buf, int len)
+void _display_status_text(synth_t * synth, char *buf, int len)
 {
     sound_t *sound = synth->sound;
     char *waveform = NULL;
@@ -221,7 +221,7 @@ void display_refresh(synth_t * synth)
 
     char screen_data[8192] = { 0 };
 
-    set_screen_data(synth, screen_data, sizeof(screen_data));
+    _display_status_text(synth, screen_data, sizeof(screen_data));
 
     SDL_Color *dataColor = &blueColor;
 

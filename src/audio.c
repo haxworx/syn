@@ -744,13 +744,13 @@ void wave_files_count(synth_t *synth)
             continue;
         }
         char path[PATH_MAX] = { 0 };
-        struct stat fs;
+        struct stat st;
         snprintf(path, PATH_MAX, "%s%c%s", directory, SLASH,
                  dirent->d_name);
 
-        stat(path, &fs);
+        stat(path, &st);
 
-        if (S_ISDIR(fs.st_mode)) {
+        if (S_ISDIR(st.st_mode)) {
             continue;
         }
 
