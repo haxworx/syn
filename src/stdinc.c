@@ -3,8 +3,8 @@
     All Rights Reserved.
  */
 
-#include "stdinc.h"
 #include "video.h"
+#include "stdinc.h"
 
 void
 fail(char *fmt, ...)
@@ -157,10 +157,8 @@ table_search(char *key)
 {
    if ((int)*key < CACHE_SIZE && cached[(int)*key] != NULL)
      {
-        //printf("cache!\n");
         return cached[(int)*key];
      }
-   // printf("no cache yet!\n");
 
    uint32_t idx = hashish(key);
    node_t *tmp = table[idx];

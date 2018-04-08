@@ -17,7 +17,7 @@ Run(synth_t *synth)
 
    while (SDL_WaitEvent(&event))
      {
-        start_time = SDL_GetTicks();
+        synth->start_time = SDL_GetTicks();
         switch (event.type)
           {
            case SDL_JOYBUTTONDOWN: {
@@ -158,7 +158,6 @@ Run(synth_t *synth)
                        break;
                     }
                   recording_start(synth);
-                  synth->is_recording = true;
                   display_refresh(synth);
                   break;
 
@@ -166,9 +165,7 @@ Run(synth_t *synth)
                   if (synth->is_recording)
                     {
                        recording_stop(synth);
-                       synth->is_recording = false;
                        display_refresh(synth);
-                       synth->continuous = false;
                        display_action("stopped recording!");
                     }
                   break;
@@ -177,11 +174,7 @@ Run(synth_t *synth)
                   if (!synth->is_recording)
                     {
                        bool del = wave_file_del(synth);
-                       if (del)
-                         {
-                            display_action("deleted wav file!");
-                         }
-                       else
+                       if (!del)
                          {
                             display_action
                               ("you can't delete what doesn't exist!");
@@ -279,7 +272,6 @@ Run(synth_t *synth)
                   sound->A = 0;
                   break;
                }
-             wave_files_count(synth);
              display_refresh(synth);
              break;
 

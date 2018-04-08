@@ -3,9 +3,11 @@
     All Rights Reserved.
  */
 
-#include "stdinc.h"
 #include "video.h"
 #include "audio.h"
+#include "effects.c"
+#include "stdinc.h"
+#include "libgen.h"
 
 sound_t *
 sound_new(synth_t *synth)
@@ -34,6 +36,7 @@ keyboard_to_note(synth_t *synth, int k)
 {
    int note = k - ' ' - 24;
    char key[1024] = { 0 };
+
    snprintf(key, sizeof(key), "%c", k);
 
    node_t *found = table_search(key);
@@ -47,85 +50,6 @@ keyboard_to_note(synth_t *synth, int k)
 }
 
 void
-effect_normal(int16_t *sound, int count)
-{
-   int effect_count = 0;
-   while (*sound > 0 && effect_count < 1264)
-     {
-        *sound -= (count * 2);
-        ++effect_count;
-     }
-   effect_count = 0;
-}
-
-void
-effect_triangle(int16_t *sound, int count)
-{
-   int effect_count = 0;
-   while (*sound > 0 && effect_count < 64)
-     {
-        *sound += (count * 3);
-        ++effect_count;
-     }
-}
-
-void
-effect_girls_n_boys(int16_t *sound, int count)
-{
-   if (*sound > 0)
-     *sound += 3 * count;
-}
-
-void
-effect_drum_n_bass(int16_t *sound, int count)
-{
-   *sound += 3 * count;
-}
-
-void
-effect_creepy_fuzz(int16_t *sound, int count)
-{
-   if (*sound < 10)
-     *sound += (3 * count);
-   if (*sound > 100)
-     *sound = 0xfa;
-}
-
-void
-effect_bassy(int16_t *sound, int count)
-{
-   if (!(count % 4))
-     *sound *= -1;
-
-   *sound >>= 4;
-}
-
-void
-effect_bowser(int16_t *sound, int count)
-{
-   if (!(count % 4))
-     *sound *= -1;
-   while (*sound > 0)
-     *sound -= 0xa;
-}
-
-void
-effect_vinyl_scratch(int16_t *sound, int count)
-{
-   while (*sound < 0)
-     *sound += 0xf;
-
-   while (*sound > 0)
-     *sound *= 256;
-}
-
-void
-effect_lazer_quest(int16_t *sound, int count)
-{
-   *sound *= tan(4096 * 1024 * atan(count * 4));
-}
-
-void
 recording_start(synth_t *synth)
 {
    DIR *d;
@@ -133,8 +57,6 @@ recording_start(synth_t *synth)
    char path[PATH_MAX];
    struct stat st;
    int i;
-
-   synth->is_recording = true;
 
    d = opendir(synth->working_directory);
    if (!d)
@@ -172,19 +94,12 @@ recording_start(synth_t *synth)
           }
      }
 
-   if (synth->recording_file)
-     {
-        free(synth->recording_file);
-        synth->recording_file = NULL;
-     }
-
-   synth->recording_file = strdup(filename);
-
    snprintf(path, sizeof(path), "%s%c%s", synth->working_directory, SLASH,
             filename);
-   synth->output_file = fopen(path, "wb");
-   if (!synth->output_file)
-     fail("fopen: %s\n", strerror(errno));
+
+   synth->recording_path = strdup(path);
+
+   synth->is_recording = true;
 
    display_action("recording to %s", filename);
 }
@@ -192,6 +107,7 @@ recording_start(synth_t *synth)
 void
 recording_stop(synth_t *synth)
 {
+   FILE *f;
    struct wav_file_hdr_t wav_file_hdr;
    int i;
 
@@ -238,23 +154,27 @@ recording_stop(synth_t *synth)
 
    wav_file_hdr.subchunk2_size = synth->output_buffer_len;
 
+   f = fopen(synth->recording_path, "wb");
+   if (!f)
+     fail("fopen: %s\n", strerror(errno));
+
    // write header to file
-   fwrite(&wav_file_hdr, sizeof(struct wav_file_hdr_t), 1, synth->output_file);
+   fwrite(&wav_file_hdr, sizeof(struct wav_file_hdr_t), 1, f);
 
    // write the audio data!
    for (i = 0; i < synth->output_buffer_len / 2; i++) {
-        fwrite(&synth->output_buffer[i], sizeof(int16_t), 1, synth->output_file);
+        fwrite(&synth->output_buffer[i], sizeof(int16_t), 1, f);
      }
 
    // close the RIFF/WAV file!
-   fclose(synth->output_file);
+   fclose(f);
 
    synth->is_recording = false;
    synth->output_buffer_len = 0;
    synth->output_buffer_index = 0;
 
-   free(synth->recording_file);
-   synth->recording_file = NULL;
+   free(synth->recording_path);
+   synth->recording_path = NULL;
 
    display_action("finished recording!");
 }
@@ -324,9 +244,9 @@ waveform_default(void *userdata, uint8_t *stream, int len)
 
    SDL_FlushEvents(SDL_KEYDOWN, SDL_MOUSEWHEEL);
 
-   if ((1000 / FPS) > SDL_GetTicks() - start_time)
+   if ((1000 / FPS) > SDL_GetTicks() - synth->start_time)
      {
-        SDL_Delay((1000 / FPS) - (SDL_GetTicks() - start_time));
+        SDL_Delay((1000 / FPS) - (SDL_GetTicks() - synth->start_time));
      }
 
    for (int i = 0; i < synth->sounds_count && synth->sounds[i] != NULL; i++) {
@@ -522,9 +442,9 @@ process_sound(synth_t *synth)
    while (synth->continuous || continuous
           || (synth->counter < 44100 * sound->duration))
      {
-        if ((1000 / FPS) > SDL_GetTicks() - start_time)
+        if ((1000 / FPS) > SDL_GetTicks() - synth->start_time)
           {
-             SDL_Delay((1000 / FPS) - (SDL_GetTicks() - start_time));
+             SDL_Delay((1000 / FPS) - (SDL_GetTicks() - synth->start_time));
           }
 
         SDL_PumpEvents();
@@ -669,18 +589,14 @@ synth_new(void)
    self->pitch = 440.00;
    self->volume = 80;
 
-   wave_files_count(self);
-
-   self->recording_file = NULL;
-
    *self->output_buffer = 0;
+   *self->sounds = NULL;
 
    for (i = 0; i < MAX_WAV_FILES; i++) {
         self->wav_files[i] = NULL;
      }
 
    self->sound = sound_system_up(self);
-   *self->sounds = NULL;
 
    return self;
 }
@@ -697,8 +613,8 @@ wave_file_play(synth_t *synth, const char *filename)
    size_t res, len;
    sound_t *sound = synth->sound;
 
-   if (synth->recording_file != NULL
-       && !strcmp(filename, synth->recording_file))
+   if (synth->recording_path != NULL
+       && !strcmp(filename, basename(synth->recording_path)))
      {
         display_action
           ("you cannot play a file that is currently recording");

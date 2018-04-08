@@ -34,26 +34,23 @@ struct sound_t
 
 typedef struct _synth_t
 {
-   char          working_directory[PATH_MAX];
-
    uint8_t       volume;
    int16_t       bass, mid, treble;
    int32_t       pitch;
+
+   char          working_directory[PATH_MAX];
 
    bool          wavefile_playing;
    bool          is_recording;
    bool          continuous;
    int16_t       sound_range_start;
+   uint32_t      start_time;
 
-   char         *recording_file;
-
-   int           counter;
+   char         *recording_path;
 
    int16_t       buffer[SAMPLES * CHANNELS];
-   sound_t      *sounds[MAX_SOUND_COUNT];
-   uint8_t       sounds_count;
+   int           counter;
 
-   FILE         *output_file;
    int16_t       output_buffer[MAX_OUTFILE_SIZE];
    int           output_buffer_index;
    int           output_buffer_len;
@@ -65,9 +62,10 @@ typedef struct _synth_t
    int16_t      *waveptr;
 
    sound_t      *sound;
+   sound_t      *sounds[MAX_SOUND_COUNT];
+   uint8_t       sounds_count;
 } synth_t;
 
-uint32_t start_time;
 
 /* this is a wav_h for RIFF/WAVE file */
 struct wav_file_hdr_t

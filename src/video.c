@@ -261,6 +261,7 @@ display_refresh(synth_t *synth)
    //TTF_SetFontStyle(font, TTF_STYLE_BOLD);
 
    wave_files_count(synth);  // expensive???
+
    char files_list[8192] = { 0 };
    set_files_list(synth, files_list, sizeof(files_list));
 
