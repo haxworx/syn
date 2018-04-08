@@ -198,7 +198,6 @@ Run(synth_t *synth)
 
                 case SDLK_BACKSPACE:
                   reset_defaults(synth);
-                  display_action("audio defaults reset!");
                   break;
 
                 case SDLK_UP:

@@ -393,6 +393,8 @@ reset_defaults(synth_t *synth)
    synth->volume = 80; //128;
 //      sound_range_start = 0;
    synth->bass = synth->mid = synth->treble = 0; // reset "dials"
+ 
+   display_action("audio defaults reset!");
 }
 
 sound_t *
