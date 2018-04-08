@@ -35,7 +35,7 @@ int
 keyboard_to_note(synth_t *synth, int k)
 {
    int note = k - ' ' - 24;
-   char key[1024] = { 0 };
+   char key[1024];
 
    snprintf(key, sizeof(key), "%c", k);
 
@@ -492,9 +492,6 @@ process_sound(synth_t *synth)
           }
      }
 
-   if (bending_pitch)
-     display_action("end of the bend...");
-
    display_refresh(synth);
    bending_pitch = false;
    sound->pitch = synth->pitch = pitch_old;
@@ -701,8 +698,8 @@ is_wav_file(const char *path)
 void
 wave_files_count(synth_t *synth)
 {
-   DIR *d = NULL;
-   struct dirent *dirent = NULL;
+   DIR *d ;
+   struct dirent *dirent;
    const char *directory = synth->working_directory;
 
    d = opendir(directory);
@@ -717,7 +714,7 @@ wave_files_count(synth_t *synth)
           {
              continue;
           }
-        char path[PATH_MAX] = { 0 };
+        char path[PATH_MAX];
         struct stat st;
         snprintf(path, PATH_MAX, "%s%c%s", directory, SLASH,
                  dirent->d_name);

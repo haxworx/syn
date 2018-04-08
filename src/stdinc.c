@@ -9,7 +9,7 @@
 void
 fail(char *fmt, ...)
 {
-   char buf[8192] = { 0 };
+   char buf[8192];
    va_list ap;
 
    va_start(ap, fmt);
