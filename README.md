@@ -4,6 +4,8 @@
 
 ## That's right baby
 
+![Screenshot](images/screenshot.jpg)
+
 This project is all about having fun with sound and music! Whether you're experimenting with mixing, recording, or playing around with instruments, **syn** is a creative playground for audio enthusiasts.
 
 ### What's new ???
@@ -53,3 +55,4 @@ This project uses the following libraries:
 - `sdl2_ttf`
 
 So grab your instruments, plug in your controller, and **have fun making some noise!** 🔊🎵
+
